@@ -1,5 +1,7 @@
 FROM node:lts-alpine
 
+RUN apk add --no-cache python3 make g++
+
 RUN mkdir /app && chown -R node:node /app
 
 WORKDIR /app
