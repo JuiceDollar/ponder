@@ -1,10 +1,10 @@
 import { ponder } from '@/generated';
 import { Address, zeroAddress, decodeEventLog } from 'viem';
 import { ADDR } from '../ponder.config';
-import { MintingHubGatewayABI } from '@deuro/eurocoin';
+import { MintingHubGatewayABI } from '@juicedollar/jusd';
 
 ponder.on('Stablecoin:Profit', async ({ event, context }) => {
-	const { DEPS, ActiveUser, Ecosystem } = context.db;
+	const { PoolShare, ActiveUser, Ecosystem } = context.db;
 
 	await Ecosystem.upsert({
 		id: 'Equity:ProfitCounter',
@@ -17,8 +17,8 @@ ponder.on('Stablecoin:Profit', async ({ event, context }) => {
 		}),
 	});
 
-	await DEPS.upsert({
-		id: ADDR.decentralizedEURO,
+	await PoolShare.upsert({
+		id: ADDR.juiceDollar,
 		create: {
 			profits: event.args.amount,
 			loss: 0n,
@@ -41,7 +41,7 @@ ponder.on('Stablecoin:Profit', async ({ event, context }) => {
 });
 
 ponder.on('Stablecoin:Loss', async ({ event, context }) => {
-	const { DEPS, ActiveUser, Ecosystem } = context.db;
+	const { PoolShare, ActiveUser, Ecosystem } = context.db;
 
 	await Ecosystem.upsert({
 		id: 'Equity:LossCounter',
@@ -54,8 +54,8 @@ ponder.on('Stablecoin:Loss', async ({ event, context }) => {
 		}),
 	});
 
-	await DEPS.upsert({
-		id: ADDR.decentralizedEURO,
+	await PoolShare.upsert({
+		id: ADDR.juiceDollar,
 		create: {
 			profits: 0n,
 			loss: event.args.amount,
@@ -170,13 +170,7 @@ ponder.on('Stablecoin:Transfer', async ({ event, context }) => {
 		MintBurnAddressMapper,
 		ActiveUser,
 		Ecosystem,
-		BridgeEURC,
-		BridgeEURS,
-		BridgeVEUR,
-		BridgeEURR,
-		BridgeEUROP,
-		BridgeEURI,
-		BridgeEURE,
+		BridgeStartUSD,
 		StablecoinTransferHistory,
 		PositionV2,
 		PositionMint,
@@ -376,23 +370,11 @@ ponder.on('Stablecoin:Transfer', async ({ event, context }) => {
 	}
 
 	const stablecoinToBridge = {
-		[ADDR.eurc.toLowerCase()]: ADDR.bridgeEURC.toLowerCase(),
-		[ADDR.eurs.toLowerCase()]: ADDR.bridgeEURS.toLowerCase(),
-		[ADDR.veur.toLowerCase()]: ADDR.bridgeVEUR.toLowerCase(),
-		[ADDR.eurr.toLowerCase()]: ADDR.bridgeEURR.toLowerCase(),
-		[ADDR.europ.toLowerCase()]: ADDR.bridgeEUROP.toLowerCase(),
-		[ADDR.euri.toLowerCase()]: ADDR.bridgeEURI.toLowerCase(),
-		[ADDR.eure.toLowerCase()]: ADDR.bridgeEURE.toLowerCase(),
+		[ADDR.startUSD.toLowerCase()]: ADDR.bridgeStartUSD.toLowerCase(),
 	};
 
 	const bridgeAddressToTable = {
-		[ADDR.bridgeEURC.toLowerCase()]: BridgeEURC,
-		[ADDR.bridgeEURS.toLowerCase()]: BridgeEURS,
-		[ADDR.bridgeVEUR.toLowerCase()]: BridgeVEUR,
-		[ADDR.bridgeEURR.toLowerCase()]: BridgeEURR,
-		[ADDR.bridgeEUROP.toLowerCase()]: BridgeEUROP,
-		[ADDR.bridgeEURI.toLowerCase()]: BridgeEURI,
-		[ADDR.bridgeEURE.toLowerCase()]: BridgeEURE,
+		[ADDR.bridgeStartUSD.toLowerCase()]: BridgeStartUSD,
 	};
 
 	const bridgeData = {
@@ -425,9 +407,9 @@ ponder.on('Stablecoin:Transfer', async ({ event, context }) => {
 		});
 
 		const logIndex = event.log.id.split('-')[1];
-		const deuroLogIndex = receipt?.logs.findIndex((log) => log.logIndex == logIndex);
-		const previousLog = deuroLogIndex ? receipt?.logs[deuroLogIndex - 1] : undefined;
-		const nextLog = deuroLogIndex ? receipt?.logs[deuroLogIndex + 1] : undefined;
+		const protocoltokenLogIndex = receipt?.logs.findIndex((log) => log.logIndex == logIndex);
+		const previousLog = protocoltokenLogIndex ? receipt?.logs[protocoltokenLogIndex - 1] : undefined;
+		const nextLog = protocoltokenLogIndex ? receipt?.logs[protocoltokenLogIndex + 1] : undefined;
 		const potencialBrigeLog = bridgeData.isMint ? previousLog : nextLog;
 		const bridgeAddress =
 			potencialBrigeLog && stablecoinToBridge[potencialBrigeLog.address.toLowerCase() as keyof typeof stablecoinToBridge];

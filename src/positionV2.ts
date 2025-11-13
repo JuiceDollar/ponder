@@ -1,5 +1,5 @@
 import { ponder } from '@/generated';
-import { PositionV2ABI as PositionABI } from '@deuro/eurocoin';
+import { PositionV2ABI as PositionABI } from '@juicedollar/jusd';
 
 ponder.on('PositionV2:MintingUpdate', async ({ event, context }) => {
 	const { client } = context;
@@ -199,7 +199,7 @@ ponder.on('PositionV2:MintingUpdate', async ({ event, context }) => {
 });
 
 ponder.on('PositionV2:PositionDenied', async ({ event, context }) => {
-	const { PositionV2, ActiveUser, Ecosystem } = context.db;
+	const { PositionV2, ActiveUser } = context.db;
 	const { client } = context;
 
 	const position = await PositionV2.findUnique({

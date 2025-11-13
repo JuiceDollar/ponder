@@ -1,10 +1,10 @@
 import { ponder } from '@/generated';
 import { Address, decodeFunctionData, RpcTransaction, zeroAddress } from 'viem';
 import { ADDR } from '../ponder.config';
-import { FrontendGatewayABI } from '@deuro/eurocoin';
+import { FrontendGatewayABI } from '@juicedollar/jusd';
 
 ponder.on('Equity:Trade', async ({ event, context }) => {
-	const { Trade, VotingPower, TradeChart, ActiveUser, Ecosystem, DEPS } = context.db;
+	const { Trade, VotingPower, TradeChart, ActiveUser, Ecosystem, PoolShare } = context.db;
 	const trader: Address = event.args.who;
 	const amount: bigint = event.args.totPrice;
 	const shares: bigint = event.args.amount;
@@ -150,8 +150,8 @@ ponder.on('Equity:Trade', async ({ event, context }) => {
 	});
 
 	const feeCollected = amount - (amount * 980n) / 1000n;
-	await DEPS.upsert({
-		id: ADDR.decentralizedEURO,
+	await PoolShare.upsert({
+		id: ADDR.juiceDollar,
 		create: {
 			profits: feeCollected,
 			loss: 0n,

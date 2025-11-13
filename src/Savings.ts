@@ -1,5 +1,5 @@
 import { ponder } from '@/generated';
-import { ERC20ABI, SavingsABI, SavingsGatewayABI } from '@deuro/eurocoin';
+import { JuiceDollarABI as StablecoinABI, SavingsABI, SavingsGatewayABI } from '@juicedollar/jusd';
 import { ADDR } from '../ponder.config';
 import { Address, decodeFunctionData } from 'viem';
 
@@ -133,7 +133,7 @@ ponder.on('Savings:Saved', async ({ event, context }) => {
 
 	// Check if this is a new user BEFORE upsert
 	const existingUser = await SavingsUserLeaderboard.findUnique({ id: account });
-	
+
 	await SavingsUserLeaderboard.upsert({
 		id: account,
 		create: {
@@ -162,8 +162,8 @@ ponder.on('Savings:Saved', async ({ event, context }) => {
 	}
 
 	const totalSaved = await context.client.readContract({
-		abi: ERC20ABI,
-		address: ADDR.decentralizedEURO,
+		abi: StablecoinABI,
+		address: ADDR.juiceDollar,
 		functionName: 'balanceOf',
 		args: [ADDR.savingsGateway],
 	});
@@ -367,8 +367,8 @@ ponder.on('Savings:Withdrawn', async ({ event, context }) => {
 	});
 
 	const totalSaved = await context.client.readContract({
-		abi: ERC20ABI,
-		address: ADDR.decentralizedEURO,
+		abi: StablecoinABI,
+		address: ADDR.juiceDollar,
 		functionName: 'balanceOf',
 		args: [ADDR.savingsGateway],
 	});

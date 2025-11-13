@@ -44,7 +44,7 @@ export default createSchema((p) => ({
 	}),
 
 	// -------------------------------------------------------------------------
-	// DEPS
+	// PoolShare
 	// -------------------------------------------------------------------------
 	VotingPower: p.createTable({
 		id: p.string(),
@@ -52,7 +52,7 @@ export default createSchema((p) => ({
 		votingPower: p.bigint(),
 	}),
 
-	DEPS: p.createTable({
+	PoolShare: p.createTable({
 		id: p.string(),
 		profits: p.bigint(),
 		loss: p.bigint(),
@@ -202,7 +202,7 @@ export default createSchema((p) => ({
 		id: p.string(),
 		position: p.string(),
 		owner: p.string(),
-		deuro: p.string(),
+		stablecoinAddress: p.string(),
 		collateral: p.string(),
 		price: p.bigint(),
 		created: p.bigint(), // block timestamp when position was created
@@ -218,9 +218,9 @@ export default createSchema((p) => ({
 		cooldown: p.bigint(),
 		expiration: p.int(),
 		challengePeriod: p.int(),
-		deuroName: p.string(),
-		deuroSymbol: p.string(),
-		deuroDecimals: p.int(),
+		stablecoinName: p.string(),
+		stablecoinSymbol: p.string(),
+		stablecoinDecimals: p.int(),
 		collateralName: p.string(),
 		collateralSymbol: p.string(),
 		collateralDecimals: p.int(),
@@ -337,16 +337,6 @@ export default createSchema((p) => ({
 		txHash: p.string(),
 	}),
 
-	UnwrapAndSellRewardAdded: p.createTable({
-		id: p.string(),
-		frontendCode: p.string(),
-		user: p.string(),
-		amount: p.bigint(),
-		reward: p.bigint(),
-		timestamp: p.bigint(),
-		txHash: p.string(),
-	}),
-
 	SavingsRewardAdded: p.createTable({
 		id: p.string(),
 		frontendCode: p.string(),
@@ -398,61 +388,7 @@ export default createSchema((p) => ({
 	// -------------------------------------------------------------------------
 	// BRIDGES
 	// -------------------------------------------------------------------------
-	BridgeEURS: p.createTable({
-		id: p.string(),
-		swapper: p.string(),
-		txHash: p.string(),
-		amount: p.bigint(),
-		isMint: p.boolean(),
-		timestamp: p.bigint(),
-	}),
-
-	BridgeVEUR: p.createTable({
-		id: p.string(),
-		swapper: p.string(),
-		txHash: p.string(),
-		amount: p.bigint(),
-		isMint: p.boolean(),
-		timestamp: p.bigint(),
-	}),
-
-	BridgeEURC: p.createTable({
-		id: p.string(),
-		swapper: p.string(),
-		txHash: p.string(),
-		amount: p.bigint(),
-		isMint: p.boolean(),
-		timestamp: p.bigint(),
-	}),
-
-	BridgeEURR: p.createTable({
-		id: p.string(),
-		swapper: p.string(),
-		txHash: p.string(),
-		amount: p.bigint(),
-		isMint: p.boolean(),
-		timestamp: p.bigint(),
-	}),
-
-	BridgeEUROP: p.createTable({
-		id: p.string(),
-		swapper: p.string(),
-		txHash: p.string(),
-		amount: p.bigint(),
-		isMint: p.boolean(),
-		timestamp: p.bigint(),
-	}),
-
-	BridgeEURI: p.createTable({
-		id: p.string(),
-		swapper: p.string(),
-		txHash: p.string(),
-		amount: p.bigint(),
-		isMint: p.boolean(),
-		timestamp: p.bigint(),
-	}),
-
-	BridgeEURE: p.createTable({
+	BridgeStartUSD: p.createTable({
 		id: p.string(),
 		swapper: p.string(),
 		txHash: p.string(),
