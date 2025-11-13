@@ -1,4 +1,4 @@
-name: dEURO Ponder DEV CI/CD
+name: JuiceDollar Ponder DEV CI/CD
 
 on:
   push:
@@ -12,9 +12,9 @@ on:
         type: boolean
 
 env:
-  DOCKER_TAGS: dfxswiss/deuro-ponder:beta
+  DOCKER_TAGS: dfxswiss/juicedollar-ponder:beta
   AZURE_RESOURCE_GROUP: rg-dfx-api-dev
-  AZURE_CONTAINER_APP: ca-dfx-dep-dev
+  AZURE_CONTAINER_APP: ca-dfx-jdtp-dev
   DEPLOY_INFO: ${{ github.ref_name }}-${{ github.sha }}
 
 jobs:
