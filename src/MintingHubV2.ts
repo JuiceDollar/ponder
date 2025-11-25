@@ -1,5 +1,5 @@
 import { ponder } from '@/generated';
-import { PositionV2ABI as PositionABI, ERC20ABI } from '@deuro/eurocoin';
+import { PositionV2ABI as PositionABI, JuiceDollarABI as StablecoinABI } from '@juicedollar/jusd';
 
 // event PositionOpened(address indexed owner, address indexed position, address original, address collateral);
 ponder.on('MintingHubV2:PositionOpened', async ({ event, context }) => {
@@ -21,10 +21,10 @@ ponder.on('MintingHubV2:PositionOpened', async ({ event, context }) => {
 
 	// ------------------------------------------------------------------
 	// CONST
-	const deuro = await client.readContract({
+	const stablecoinAddress = await client.readContract({
 		abi: PositionABI,
 		address: position,
-		functionName: 'deuro',
+		functionName: 'jusd',
 	});
 
 	const minimumCollateral = await client.readContract({
@@ -76,47 +76,47 @@ ponder.on('MintingHubV2:PositionOpened', async ({ event, context }) => {
 	});
 
 	// ------------------------------------------------------------------
-	// dEURO ERC20
-	const deuroName = await client.readContract({
-		abi: ERC20ABI,
-		address: deuro,
+	// STABLECOIN OF THE PROTOCOL ERC20
+	const stablecoinName = await client.readContract({
+		abi: StablecoinABI,
+		address: stablecoinAddress,
 		functionName: 'name',
 	});
 
-	const deuroSymbol = await client.readContract({
-		abi: ERC20ABI,
-		address: deuro,
+	const stablecoinSymbol = await client.readContract({
+		abi: StablecoinABI,
+		address: stablecoinAddress,
 		functionName: 'symbol',
 	});
 
-	const deuroDecimals = await client.readContract({
-		abi: ERC20ABI,
-		address: deuro,
+	const stablecoinDecimals = await client.readContract({
+		abi: StablecoinABI,
+		address: stablecoinAddress,
 		functionName: 'decimals',
 	});
 
 	// ------------------------------------------------------------------
 	// COLLATERAL ERC20
 	const collateralName = await client.readContract({
-		abi: ERC20ABI,
+		abi: StablecoinABI,
 		address: collateral,
 		functionName: 'name',
 	});
 
 	const collateralSymbol = await client.readContract({
-		abi: ERC20ABI,
+		abi: StablecoinABI,
 		address: collateral,
 		functionName: 'symbol',
 	});
 
 	const collateralDecimals = await client.readContract({
-		abi: ERC20ABI,
+		abi: StablecoinABI,
 		address: collateral,
 		functionName: 'decimals',
 	});
 
 	const collateralBalance = await client.readContract({
-		abi: ERC20ABI,
+		abi: StablecoinABI,
 		address: collateral,
 		functionName: 'balanceOf',
 		args: [position],
@@ -203,7 +203,7 @@ ponder.on('MintingHubV2:PositionOpened', async ({ event, context }) => {
 		data: {
 			position,
 			owner,
-			deuro,
+			stablecoinAddress,
 			collateral,
 			price,
 
@@ -222,9 +222,9 @@ ponder.on('MintingHubV2:PositionOpened', async ({ event, context }) => {
 			expiration,
 			challengePeriod,
 
-			deuroName: deuroName,
-			deuroSymbol: deuroSymbol,
-			deuroDecimals: deuroDecimals,
+			stablecoinName,
+			stablecoinSymbol,
+			stablecoinDecimals,
 
 			collateralName,
 			collateralSymbol,

@@ -1,5 +1,5 @@
 import { ponder } from '@/generated';
-import { PositionV2ABI } from '@deuro/eurocoin';
+import { PositionV2ABI } from '@juicedollar/jusd';
 
 ponder.on('FrontendGateway:FrontendCodeRegistered', async ({ event, context }) => {
 	const { FrontendCodeRegistered, FrontendCodeMapping } = context.db;
@@ -189,69 +189,6 @@ ponder.on('FrontendGateway:RedeemRewardAdded', async ({ event, context }) => {
 	});
 });
 
-ponder.on('FrontendGateway:UnwrapAndSellRewardAdded', async ({ event, context }) => {
-	const { UnwrapAndSellRewardAdded, FrontendRewardsMapping, FrontendRewardsVolumeMapping, FrontendBonusHistoryMapping } = context.db;
-	const { user, amount, reward, frontendCode } = event.args;
-
-	await UnwrapAndSellRewardAdded.create({
-		id: `${event.transaction.hash}-${event.log.logIndex}`,
-		data: {
-			user,
-			amount,
-			reward,
-			frontendCode,
-			timestamp: event.block.timestamp,
-			txHash: event.transaction.hash,
-		},
-	});
-
-	await FrontendRewardsMapping.upsert({
-		id: frontendCode,
-		create: {
-			totalReffered: 1,
-			referred: [user],
-			totalVolume: reward,
-			loansVolume: 0n,
-			investVolume: 0n,
-			savingsVolume: 0n,
-		},
-		update: (c) => {
-			const referred = c.current.referred.includes(user) ? c.current.referred : [...c.current.referred, user];
-			return {
-				totalReffered: referred.length,
-				referred,
-				totalVolume: c.current.totalVolume + reward,
-				investVolume: c.current.investVolume + reward,
-			};
-		},
-	});
-
-	await FrontendRewardsVolumeMapping.upsert({
-		id: `${frontendCode}-${user}`,
-		create: {
-			frontendCode,
-			referred: user,
-			volume: reward,
-			timestamp: event.block.timestamp,
-		},
-		update: (c) => ({
-			volume: c.current.volume + reward,
-			timestamp: event.block.timestamp,
-		}),
-	});
-
-	await FrontendBonusHistoryMapping.create({
-		id: `${event.transaction.hash}-${event.log.logIndex}`,
-		data: {
-			frontendCode,
-			payout: reward,
-			source: 'UnwrapAndSellRewardAdded',
-			timestamp: event.block.timestamp,
-			txHash: event.transaction.hash,
-		},
-	});
-});
-
 ponder.on('FrontendGateway:SavingsRewardAdded', async ({ event, context }) => {
 	const { SavingsRewardAdded, FrontendRewardsMapping, FrontendRewardsVolumeMapping, FrontendBonusHistoryMapping } = context.db;
 	const { saver, interest, reward, frontendCode } = event.args;
@@ -316,8 +253,7 @@ ponder.on('FrontendGateway:SavingsRewardAdded', async ({ event, context }) => {
 });
 
 ponder.on('FrontendGateway:PositionRewardAdded', async ({ event, context }) => {
-	const { PositionRewardAdded, FrontendRewardsMapping, FrontendRewardsVolumeMapping, PositionV2, FrontendBonusHistoryMapping } =
-		context.db;
+	const { PositionRewardAdded, FrontendRewardsMapping, FrontendRewardsVolumeMapping, FrontendBonusHistoryMapping } = context.db;
 	const { amount, reward, frontendCode, position } = event.args;
 	const { client } = context;
 

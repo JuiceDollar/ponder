@@ -1,5 +1,5 @@
 {
-	"name": "@deuro/ponder",
+	"name": "@juicedollar/ponder",
 	"version": "1.0.0",
 	"private": false,
 	"license": "MIT",
@@ -12,7 +12,7 @@
 		"typecheck": "tsc"
 	},
 	"dependencies": {
-		"@deuro/eurocoin": "1.0.13",
+		"@juicedollar/jusd": "^1.0.1",
 		"@ponder/core": "^0.4.36",
 		"pg": "^8.11.3",
 		"viem": "^2.13.8"
