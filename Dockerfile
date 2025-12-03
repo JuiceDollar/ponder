@@ -10,6 +10,7 @@ USER node
 COPY --chown=node . .
 RUN yarn install --production --frozen-lockfile
 
-CMD ["sh", "-c", "npx ponder start"]
+CMD ["sh", "-c", "yarn start"]
+
 
 
