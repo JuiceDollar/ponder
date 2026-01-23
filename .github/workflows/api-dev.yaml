@@ -8,7 +8,8 @@ on:
 env:
   DOCKER_TAGS: dfxswiss/juicedollar-ponder:beta
   AZURE_RESOURCE_GROUP: rg-dfx-api-dev
-  AZURE_CONTAINER_APP: ca-dfx-jdtp-dev
+  AZURE_CONTAINER_APP_1: ca-dfx-jdtp-dev
+  AZURE_CONTAINER_APP_2: ca-dfx-jdmp-dev
   DEPLOY_INFO: ${{ github.ref_name }}-${{ github.sha }}
 
 jobs:
@@ -43,29 +44,50 @@ jobs:
         with:
           creds: ${{ secrets.DFX_DEV_CREDENTIALS }}
 
-      - name: Update Azure Container App
+      - name: Update Azure Container App 1
         uses: azure/CLI@v2
         with:
           inlineScript: |
-            echo "Updating container app"
+            echo "Updating container app ${{ env.AZURE_CONTAINER_APP_1 }}"
 
             CURRENT_REVISION=$(az containerapp revision list \
               --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-              --name ${{ env.AZURE_CONTAINER_APP }} \
+              --name ${{ env.AZURE_CONTAINER_APP_1 }} \
               --query "[?properties.active].name" \
               --output tsv | head -1)
 
-            echo "CURRENT_REVISION=$CURRENT_REVISION" >> $GITHUB_ENV
-
             az containerapp update \
               --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-              --name ${{ env.AZURE_CONTAINER_APP }} \
+              --name ${{ env.AZURE_CONTAINER_APP_1 }} \
               --image ${{ env.DOCKER_TAGS }} \
               --set-env-vars DEPLOY_INFO=${{ env.DEPLOY_INFO }}
 
             az containerapp revision deactivate \
               --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-              --name ${{ env.AZURE_CONTAINER_APP }} \
+              --name ${{ env.AZURE_CONTAINER_APP_1 }} \
+              --revision $CURRENT_REVISION
+
+      - name: Update Azure Container App 2
+        uses: azure/CLI@v2
+        with:
+          inlineScript: |
+            echo "Updating container app ${{ env.AZURE_CONTAINER_APP_2 }}"
+
+            CURRENT_REVISION=$(az containerapp revision list \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --name ${{ env.AZURE_CONTAINER_APP_2 }} \
+              --query "[?properties.active].name" \
+              --output tsv | head -1)
+
+            az containerapp update \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --name ${{ env.AZURE_CONTAINER_APP_2 }} \
+              --image ${{ env.DOCKER_TAGS }} \
+              --set-env-vars DEPLOY_INFO=${{ env.DEPLOY_INFO }}
+
+            az containerapp revision deactivate \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --name ${{ env.AZURE_CONTAINER_APP_2 }} \
               --revision $CURRENT_REVISION
 
       - name: Logout from Azure
