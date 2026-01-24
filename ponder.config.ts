@@ -1,5 +1,5 @@
 import { createConfig } from '@ponder/core';
-import { testnet } from './chains';
+import { testnet, mainnet } from './chains';
 import { Address, http } from 'viem';
 
 import {
@@ -13,22 +13,32 @@ import {
 	FrontendGatewayABI,
 } from '@juicedollar/jusd';
 
-// mainnet (default) or polygon
-// TODO: Remove this once we have a proper mainnet
-// export const chain = (process.env.PONDER_PROFILE as string) == 'testnet' ? testnet : mainnet;
-export const chain = testnet;
+// mainnet (default) or testnet
+export const chain = (process.env.PONDER_PROFILE as string) == 'testnet' ? testnet : mainnet;
 export const Id = chain.id!;
 export const ADDR = ADDRESS[Id]!;
 
+const MAINNET_CONFIG = {
+	rpc: process.env.RPC_URL_MAINNET ?? mainnet.rpcUrls.default.http[0],
+	startStablecoin: 2000000,
+	startMintingHubV2: 2000000,
+	blockrange: 1000,
+	maxRequestsPerSecond: 50,
+	pollingInterval: 5_000,
+};
+
+const TESTNET_CONFIG = {
+	rpc: process.env.RPC_URL_TESTNET ?? testnet.rpcUrls.default.http[0],
+	startStablecoin: 19497714,
+	startMintingHubV2: 19497714,
+	blockrange: 1000,
+	maxRequestsPerSecond: 50,
+	pollingInterval: 5_000,
+};
+
 export const CONFIG = {
-	[Id]: {
-		rpc: process.env.RPC_URL_MAINNET ?? chain.rpcUrls.default.http[0],
-		startStablecoin: 19497714,
-		startMintingHubV2: 19497714,
-		blockrange: 1000,
-		maxRequestsPerSecond: 50,
-		pollingInterval: 5_000,
-	},
+	[mainnet.id]: MAINNET_CONFIG,
+	[testnet.id]: TESTNET_CONFIG,
 };
 
 export const config = CONFIG[Id]!;
