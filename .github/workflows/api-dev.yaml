@@ -60,12 +60,18 @@ jobs:
               --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
               --name ${{ env.AZURE_CONTAINER_APP_1 }} \
               --image ${{ env.DOCKER_TAGS }} \
+              --revision-suffix $(date +%s) \
               --set-env-vars DEPLOY_INFO=${{ env.DEPLOY_INFO }}
 
-            az containerapp revision deactivate \
-              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-              --name ${{ env.AZURE_CONTAINER_APP_1 }} \
-              --revision $CURRENT_REVISION
+            if [ -n "$CURRENT_REVISION" ]; then
+              echo "Deactivating previous revision: $CURRENT_REVISION"
+              az containerapp revision deactivate \
+                --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+                --name ${{ env.AZURE_CONTAINER_APP_1 }} \
+                --revision $CURRENT_REVISION
+            else
+              echo "No previous revision to deactivate"
+            fi
 
       - name: Update Azure Container App 2
         uses: azure/CLI@v2
@@ -83,12 +89,18 @@ jobs:
               --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
               --name ${{ env.AZURE_CONTAINER_APP_2 }} \
               --image ${{ env.DOCKER_TAGS }} \
+              --revision-suffix $(date +%s) \
               --set-env-vars DEPLOY_INFO=${{ env.DEPLOY_INFO }}
 
-            az containerapp revision deactivate \
-              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-              --name ${{ env.AZURE_CONTAINER_APP_2 }} \
-              --revision $CURRENT_REVISION
+            if [ -n "$CURRENT_REVISION" ]; then
+              echo "Deactivating previous revision: $CURRENT_REVISION"
+              az containerapp revision deactivate \
+                --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+                --name ${{ env.AZURE_CONTAINER_APP_2 }} \
+                --revision $CURRENT_REVISION
+            else
+              echo "No previous revision to deactivate"
+            fi
 
       - name: Logout from Azure
         run: |
