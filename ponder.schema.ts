@@ -388,13 +388,23 @@ export default createSchema((p) => ({
 	// -------------------------------------------------------------------------
 	// BRIDGES
 	// -------------------------------------------------------------------------
-	BridgeStartUSD: p.createTable({
+	BridgeTx: p.createTable({
 		id: p.string(),
+		stablecoinAddress: p.string(),
 		swapper: p.string(),
 		txHash: p.string(),
 		amount: p.bigint(),
 		isMint: p.boolean(),
 		timestamp: p.bigint(),
+	}),
+
+	BridgeVolumeStat: p.createTable({
+		id: p.string(),
+		stablecoinAddress: p.string(),
+		timestamp: p.bigint(),
+		txCount: p.int(),
+		volume: p.bigint(),
+		type: p.string(),
 	}),
 
 	// -------------------------------------------------------------------------

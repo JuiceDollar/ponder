@@ -2,6 +2,7 @@ import { ponder } from '@/generated';
 import { Address, zeroAddress, decodeEventLog } from 'viem';
 import { ADDR } from '../ponder.config';
 import { MintingHubGatewayABI } from '@juicedollar/jusd';
+import { TEMPORAL_FRAMES, getIdByTemporalFrame, getTimestampByTemporalFrame } from './utils/timestamps';
 
 ponder.on('Stablecoin:Profit', async ({ event, context }) => {
 	const { PoolShare, ActiveUser, Ecosystem } = context.db;
@@ -170,7 +171,8 @@ ponder.on('Stablecoin:Transfer', async ({ event, context }) => {
 		MintBurnAddressMapper,
 		ActiveUser,
 		Ecosystem,
-		BridgeStartUSD,
+		BridgeTx,
+		BridgeVolumeStat,
 		StablecoinTransferHistory,
 		PositionV2,
 		PositionMint,
@@ -369,13 +371,16 @@ ponder.on('Stablecoin:Transfer', async ({ event, context }) => {
 		});
 	}
 
-	const stablecoinToBridge = {
-		[ADDR.startUSD.toLowerCase()]: ADDR.bridgeStartUSD.toLowerCase(),
+	const stablecoinToBridge: Record<string, string> = {
+		...(ADDR.startUSD && ADDR.bridgeStartUSD ? { [ADDR.startUSD.toLowerCase()]: ADDR.bridgeStartUSD.toLowerCase() } : {}),
+		...(ADDR.USDC && ADDR.bridgeUSDC ? { [ADDR.USDC.toLowerCase()]: ADDR.bridgeUSDC.toLowerCase() } : {}),
+		...(ADDR.USDT && ADDR.bridgeUSDT ? { [ADDR.USDT.toLowerCase()]: ADDR.bridgeUSDT.toLowerCase() } : {}),
+		...(ADDR.CTUSD && ADDR.bridgeCTUSD ? { [ADDR.CTUSD.toLowerCase()]: ADDR.bridgeCTUSD.toLowerCase() } : {}),
 	};
 
-	const bridgeAddressToTable = {
-		[ADDR.bridgeStartUSD.toLowerCase()]: BridgeStartUSD,
-	};
+	const bridgeToStablecoin: Record<string, string> = Object.fromEntries(
+		Object.entries(stablecoinToBridge).map(([k, v]) => [v, k])
+	);
 
 	const bridgeData = {
 		swapper: event.transaction.from,
@@ -386,12 +391,30 @@ ponder.on('Stablecoin:Transfer', async ({ event, context }) => {
 	};
 
 	// Capture direct bridge transactions
-	const bridgeTable = bridgeAddressToTable[event.transaction.to?.toLowerCase() as keyof typeof bridgeAddressToTable];
-	if (bridgeTable) {
-		await bridgeTable.create({
+	const stablecoinAddress = bridgeToStablecoin[event.transaction.to?.toLowerCase() ?? ''];
+	if (stablecoinAddress) {
+		await BridgeTx.create({
 			id: `${event.transaction.hash}-${event.log.logIndex}`,
-			data: bridgeData,
+			data: { ...bridgeData, stablecoinAddress },
 		});
+
+		for (const type of TEMPORAL_FRAMES) {
+			const bucketTimestamp = getTimestampByTemporalFrame(type, bridgeData.timestamp);
+			await BridgeVolumeStat.upsert({
+				id: getIdByTemporalFrame(stablecoinAddress, type, bridgeData.timestamp),
+				create: {
+					stablecoinAddress,
+					timestamp: bucketTimestamp,
+					txCount: 1,
+					volume: bridgeData.amount,
+					type,
+				},
+				update: ({ current }) => ({
+					txCount: current.txCount + 1,
+					volume: current.volume + bridgeData.amount,
+				}),
+			});
+		}
 	}
 
 	const ecosystemContract = Object.values(ADDR).map((address) => address.toLowerCase());
@@ -411,14 +434,34 @@ ponder.on('Stablecoin:Transfer', async ({ event, context }) => {
 		const previousLog = protocoltokenLogIndex ? receipt?.logs[protocoltokenLogIndex - 1] : undefined;
 		const nextLog = protocoltokenLogIndex ? receipt?.logs[protocoltokenLogIndex + 1] : undefined;
 		const potencialBrigeLog = bridgeData.isMint ? previousLog : nextLog;
-		const bridgeAddress =
-			potencialBrigeLog && stablecoinToBridge[potencialBrigeLog.address.toLowerCase() as keyof typeof stablecoinToBridge];
+		const externalStablecoinAddress =
+			potencialBrigeLog && stablecoinToBridge[potencialBrigeLog.address.toLowerCase()]
+				? potencialBrigeLog.address.toLowerCase()
+				: undefined;
 
-		if (bridgeAddress) {
-			await bridgeAddressToTable[bridgeAddress]?.create({
+		if (externalStablecoinAddress) {
+			await BridgeTx.create({
 				id: `${event.transaction.hash}-${event.log.logIndex}`,
-				data: bridgeData,
+				data: { ...bridgeData, stablecoinAddress: externalStablecoinAddress },
 			});
+
+			for (const type of TEMPORAL_FRAMES) {
+				const bucketTimestamp = getTimestampByTemporalFrame(type, bridgeData.timestamp);
+				await BridgeVolumeStat.upsert({
+					id: getIdByTemporalFrame(externalStablecoinAddress, type, bridgeData.timestamp),
+					create: {
+						stablecoinAddress: externalStablecoinAddress,
+						timestamp: bucketTimestamp,
+						txCount: 1,
+						volume: bridgeData.amount,
+						type,
+					},
+					update: ({ current }) => ({
+						txCount: current.txCount + 1,
+						volume: current.volume + bridgeData.amount,
+					}),
+				});
+			}
 		}
 	}
 });
