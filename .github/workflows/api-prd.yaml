@@ -8,8 +8,8 @@ on:
 env:
   DOCKER_TAGS: dfxswiss/juicedollar-ponder:latest
   AZURE_RESOURCE_GROUP: rg-dfx-api-prd
-  AZURE_CONTAINER_APP_1: ca-dfx-jdtp-prd
-  AZURE_CONTAINER_APP_2: ca-dfx-jdmp-prd
+  AZURE_CONTAINER_APP_TESTNET: ca-dfx-jdtp-prd
+  AZURE_CONTAINER_APP_MAINNET: ca-dfx-jdmp-prd
   DEPLOY_INFO: ${{ github.ref_name }}-${{ github.sha }}
 
 jobs:
@@ -44,21 +44,21 @@ jobs:
         with:
           creds: ${{ secrets.DFX_PRD_CREDENTIALS }}
 
-      - name: Update Azure Container App 1
+      - name: Update Azure Container App (testnet)
         uses: azure/CLI@v2
         with:
           inlineScript: |
-            echo "Updating container app ${{ env.AZURE_CONTAINER_APP_1 }}"
+            echo "Updating container app ${{ env.AZURE_CONTAINER_APP_TESTNET }}"
 
             CURRENT_REVISION=$(az containerapp revision list \
               --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-              --name ${{ env.AZURE_CONTAINER_APP_1 }} \
+              --name ${{ env.AZURE_CONTAINER_APP_TESTNET }} \
               --query "[?properties.active].name" \
               --output tsv | head -1)
 
             az containerapp update \
               --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-              --name ${{ env.AZURE_CONTAINER_APP_1 }} \
+              --name ${{ env.AZURE_CONTAINER_APP_TESTNET }} \
               --image ${{ env.DOCKER_TAGS }} \
               --revision-suffix $(date +%s) \
               --set-env-vars DEPLOY_INFO=${{ env.DEPLOY_INFO }}
@@ -67,27 +67,27 @@ jobs:
               echo "Deactivating previous revision: $CURRENT_REVISION"
               az containerapp revision deactivate \
                 --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-                --name ${{ env.AZURE_CONTAINER_APP_1 }} \
+                --name ${{ env.AZURE_CONTAINER_APP_TESTNET }} \
                 --revision $CURRENT_REVISION
             else
               echo "No previous revision to deactivate"
             fi
 
-      - name: Update Azure Container App 2
+      - name: Update Azure Container App (mainnet)
         uses: azure/CLI@v2
         with:
           inlineScript: |
-            echo "Updating container app ${{ env.AZURE_CONTAINER_APP_2 }}"
+            echo "Updating container app ${{ env.AZURE_CONTAINER_APP_MAINNET }}"
 
             CURRENT_REVISION=$(az containerapp revision list \
               --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-              --name ${{ env.AZURE_CONTAINER_APP_2 }} \
+              --name ${{ env.AZURE_CONTAINER_APP_MAINNET }} \
               --query "[?properties.active].name" \
               --output tsv | head -1)
 
             az containerapp update \
               --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-              --name ${{ env.AZURE_CONTAINER_APP_2 }} \
+              --name ${{ env.AZURE_CONTAINER_APP_MAINNET }} \
               --image ${{ env.DOCKER_TAGS }} \
               --revision-suffix $(date +%s) \
               --set-env-vars DEPLOY_INFO=${{ env.DEPLOY_INFO }}
@@ -96,7 +96,7 @@ jobs:
               echo "Deactivating previous revision: $CURRENT_REVISION"
               az containerapp revision deactivate \
                 --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-                --name ${{ env.AZURE_CONTAINER_APP_2 }} \
+                --name ${{ env.AZURE_CONTAINER_APP_MAINNET }} \
                 --revision $CURRENT_REVISION
             else
               echo "No previous revision to deactivate"
