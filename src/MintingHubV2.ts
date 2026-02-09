@@ -535,6 +535,40 @@ ponder.on('MintingHubV2:ChallengeSucceeded', async ({ event, context }) => {
 	});
 });
 
+// ============ Security Monitoring Events ============
+
+ponder.on('MintingHubV2:ForcedSale', async ({ event, context }) => {
+	const { ForcedSale } = context.db;
+
+	await ForcedSale.create({
+		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		data: {
+			position: event.args.pos,
+			amount: event.args.amount,
+			priceE36MinusDecimals: event.args.priceE36MinusDecimals,
+			blockheight: event.block.number,
+			timestamp: event.block.timestamp,
+			txHash: event.transaction.hash,
+		},
+	});
+});
+
+ponder.on('MintingHubV2:PositionDeniedByGovernance', async ({ event, context }) => {
+	const { PositionDeniedByGovernance } = context.db;
+
+	await PositionDeniedByGovernance.create({
+		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		data: {
+			position: event.args.position,
+			denier: event.args.denier,
+			message: event.args.message,
+			blockheight: event.block.number,
+			timestamp: event.block.timestamp,
+			txHash: event.transaction.hash,
+		},
+	});
+});
+
 const getChallengeId = (position: string, number: bigint) => {
 	return `${position.toLowerCase()}-challenge-${number}`;
 };

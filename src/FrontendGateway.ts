@@ -326,3 +326,40 @@ ponder.on('FrontendGateway:PositionRewardAdded', async ({ event, context }) => {
 		},
 	});
 });
+
+// ============ Security Monitoring Events ============
+
+ponder.on('FrontendGateway:RateChangesProposed', async ({ event, context }) => {
+	const { RateChangesProposed } = context.db;
+
+	await RateChangesProposed.create({
+		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		data: {
+			who: event.args.who,
+			nextFeeRate: event.args.nextFeeRate,
+			nextSavingsFeeRate: event.args.nextSavingsFeeRate,
+			nextMintingFeeRate: event.args.nextMintingFeeRate,
+			nextChange: event.args.nextChange,
+			blockheight: event.block.number,
+			timestamp: event.block.timestamp,
+			txHash: event.transaction.hash,
+		},
+	});
+});
+
+ponder.on('FrontendGateway:RateChangesExecuted', async ({ event, context }) => {
+	const { RateChangesExecuted } = context.db;
+
+	await RateChangesExecuted.create({
+		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		data: {
+			who: event.args.who,
+			nextFeeRate: event.args.nextFeeRate,
+			nextSavingsFeeRate: event.args.nextSavingsFeeRate,
+			nextMintingFeeRate: event.args.nextMintingFeeRate,
+			blockheight: event.block.number,
+			timestamp: event.block.timestamp,
+			txHash: event.transaction.hash,
+		},
+	});
+});

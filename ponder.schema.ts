@@ -408,6 +408,62 @@ export default createSchema((p) => ({
 	}),
 
 	// -------------------------------------------------------------------------
+	// MONITORING: Critical Security Events
+	// -------------------------------------------------------------------------
+	EmergencyStopped: p.createTable({
+		id: p.string(),
+		bridgeAddress: p.string(),
+		caller: p.string(),
+		message: p.string(),
+		blockheight: p.bigint(),
+		timestamp: p.bigint(),
+		txHash: p.string(),
+	}),
+
+	ForcedSale: p.createTable({
+		id: p.string(),
+		position: p.string(),
+		amount: p.bigint(),
+		priceE36MinusDecimals: p.bigint(),
+		blockheight: p.bigint(),
+		timestamp: p.bigint(),
+		txHash: p.string(),
+	}),
+
+	PositionDeniedByGovernance: p.createTable({
+		id: p.string(),
+		position: p.string(),
+		denier: p.string(),
+		message: p.string(),
+		blockheight: p.bigint(),
+		timestamp: p.bigint(),
+		txHash: p.string(),
+	}),
+
+	RateChangesProposed: p.createTable({
+		id: p.string(),
+		who: p.string(),
+		nextFeeRate: p.int(),
+		nextSavingsFeeRate: p.int(),
+		nextMintingFeeRate: p.int(),
+		nextChange: p.bigint(),
+		blockheight: p.bigint(),
+		timestamp: p.bigint(),
+		txHash: p.string(),
+	}),
+
+	RateChangesExecuted: p.createTable({
+		id: p.string(),
+		who: p.string(),
+		nextFeeRate: p.int(),
+		nextSavingsFeeRate: p.int(),
+		nextMintingFeeRate: p.int(),
+		blockheight: p.bigint(),
+		timestamp: p.bigint(),
+		txHash: p.string(),
+	}),
+
+	// -------------------------------------------------------------------------
 	// COMMON
 	// -------------------------------------------------------------------------
 	ActiveUser: p.createTable({
