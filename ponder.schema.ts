@@ -200,6 +200,7 @@ export default createSchema((p) => ({
 	// -------------------------------------------------------------------------
 	PositionV2: p.createTable({
 		id: p.string(),
+		txHash: p.string(),
 		position: p.string(),
 		owner: p.string(),
 		stablecoinAddress: p.string(),
@@ -262,6 +263,7 @@ export default createSchema((p) => ({
 
 	ChallengeV2: p.createTable({
 		id: p.string(), // e.g. 0x5d0e66DC411FEfBE9cAe9CE56dA9BCE8C027f492-challenge-2
+		txHash: p.string(),
 		position: p.string(), // position being challenged
 		number: p.bigint(), // number of the challenge in minting hub
 		challenger: p.string(),
@@ -278,6 +280,7 @@ export default createSchema((p) => ({
 
 	ChallengeBidV2: p.createTable({
 		id: p.string(), // e.g. 0x5d0e66DC411FEfBE9cAe9CE56dA9BCE8C027f492-challenge-2-bid-0
+		txHash: p.string(),
 		position: p.string(),
 		number: p.bigint(),
 		numberBid: p.bigint(),
