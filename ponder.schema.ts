@@ -212,6 +212,7 @@ export default createSchema((p) => ({
 		denied: p.boolean(),
 		closed: p.boolean(),
 		original: p.string(),
+		isChallenged: p.boolean(),
 		minimumCollateral: p.bigint(),
 		riskPremiumPPM: p.int(),
 		reserveContribution: p.int(),

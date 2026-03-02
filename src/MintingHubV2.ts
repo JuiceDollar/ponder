@@ -18,6 +18,7 @@ ponder.on('MintingHubV2:PositionOpened', async ({ event, context }) => {
 	const isClone: boolean = !isOriginal;
 	const closed: boolean = false;
 	const denied: boolean = false;
+	const isChallenged: boolean = false;
 
 	// ------------------------------------------------------------------
 	// CONST
@@ -214,6 +215,7 @@ ponder.on('MintingHubV2:PositionOpened', async ({ event, context }) => {
 			denied,
 			closed,
 			original,
+			isChallenged,
 
 			minimumCollateral,
 			riskPremiumPPM,
@@ -311,6 +313,11 @@ ponder.on('MintingHubV2:ChallengeStarted', async ({ event, context }) => {
 			acquiredCollateral: 0n,
 			status: 'Active',
 		},
+	});
+
+	await PositionV2.update({
+		id: event.args.position.toLowerCase(),
+		data: { isChallenged: true },
 	});
 
 	// ------------------------------------------------------------------
@@ -411,7 +418,7 @@ ponder.on('MintingHubV2:ChallengeAverted', async ({ event, context }) => {
 	// update PositionV2 related changes
 	await PositionV2.update({
 		id: event.args.position.toLowerCase(),
-		data: { cooldown: BigInt(cooldown) },
+		data: { cooldown: BigInt(cooldown), isChallenged: challenges[3] !== 0n },
 	});
 
 	// ------------------------------------------------------------------
@@ -512,7 +519,7 @@ ponder.on('MintingHubV2:ChallengeSucceeded', async ({ event, context }) => {
 
 	await PositionV2.update({
 		id: event.args.position.toLowerCase(),
-		data: { cooldown: BigInt(cooldown) },
+		data: { cooldown: BigInt(cooldown), isChallenged: challenges[3] !== 0n },
 	});
 
 	// ------------------------------------------------------------------
