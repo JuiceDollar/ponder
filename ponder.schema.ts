@@ -200,6 +200,7 @@ export default createSchema((p) => ({
 	// -------------------------------------------------------------------------
 	PositionV2: p.createTable({
 		id: p.string(),
+		txHash: p.string(),
 		position: p.string(),
 		owner: p.string(),
 		stablecoinAddress: p.string(),
@@ -211,6 +212,7 @@ export default createSchema((p) => ({
 		denied: p.boolean(),
 		closed: p.boolean(),
 		original: p.string(),
+		isChallenged: p.boolean(),
 		minimumCollateral: p.bigint(),
 		riskPremiumPPM: p.int(),
 		reserveContribution: p.int(),
@@ -262,6 +264,7 @@ export default createSchema((p) => ({
 
 	ChallengeV2: p.createTable({
 		id: p.string(), // e.g. 0x5d0e66DC411FEfBE9cAe9CE56dA9BCE8C027f492-challenge-2
+		txHash: p.string(),
 		position: p.string(), // position being challenged
 		number: p.bigint(), // number of the challenge in minting hub
 		challenger: p.string(),
@@ -278,6 +281,7 @@ export default createSchema((p) => ({
 
 	ChallengeBidV2: p.createTable({
 		id: p.string(), // e.g. 0x5d0e66DC411FEfBE9cAe9CE56dA9BCE8C027f492-challenge-2-bid-0
+		txHash: p.string(),
 		position: p.string(),
 		number: p.bigint(),
 		numberBid: p.bigint(),
@@ -405,6 +409,62 @@ export default createSchema((p) => ({
 		txCount: p.int(),
 		volume: p.bigint(),
 		type: p.string(),
+	}),
+
+	// -------------------------------------------------------------------------
+	// MONITORING: Critical Security Events
+	// -------------------------------------------------------------------------
+	EmergencyStopped: p.createTable({
+		id: p.string(),
+		bridgeAddress: p.string(),
+		caller: p.string(),
+		message: p.string(),
+		blockheight: p.bigint(),
+		timestamp: p.bigint(),
+		txHash: p.string(),
+	}),
+
+	ForcedSale: p.createTable({
+		id: p.string(),
+		position: p.string(),
+		amount: p.bigint(),
+		priceE36MinusDecimals: p.bigint(),
+		blockheight: p.bigint(),
+		timestamp: p.bigint(),
+		txHash: p.string(),
+	}),
+
+	PositionDeniedByGovernance: p.createTable({
+		id: p.string(),
+		position: p.string(),
+		denier: p.string(),
+		message: p.string(),
+		blockheight: p.bigint(),
+		timestamp: p.bigint(),
+		txHash: p.string(),
+	}),
+
+	RateChangesProposed: p.createTable({
+		id: p.string(),
+		who: p.string(),
+		nextFeeRate: p.int(),
+		nextSavingsFeeRate: p.int(),
+		nextMintingFeeRate: p.int(),
+		nextChange: p.bigint(),
+		blockheight: p.bigint(),
+		timestamp: p.bigint(),
+		txHash: p.string(),
+	}),
+
+	RateChangesExecuted: p.createTable({
+		id: p.string(),
+		who: p.string(),
+		nextFeeRate: p.int(),
+		nextSavingsFeeRate: p.int(),
+		nextMintingFeeRate: p.int(),
+		blockheight: p.bigint(),
+		timestamp: p.bigint(),
+		txHash: p.string(),
 	}),
 
 	// -------------------------------------------------------------------------

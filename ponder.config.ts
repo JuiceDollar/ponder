@@ -11,6 +11,7 @@ import {
 	PositionV2ABI,
 	SavingsABI,
 	FrontendGatewayABI,
+	StablecoinBridgeABI,
 } from '@juicedollar/jusd';
 
 // mainnet (default) or testnet
@@ -111,6 +112,18 @@ export default createConfig({
 			abi: FrontendGatewayABI,
 			address: ADDR.frontendGateway as Address,
 			startBlock: config.startMintingHubV2,
+			maxBlockRange: config.blockrange,
+		},
+		StablecoinBridge: {
+			network: chain.name,
+			abi: StablecoinBridgeABI,
+			address: [
+				ADDR.bridgeStartUSD,
+				ADDR.bridgeUSDC,
+				ADDR.bridgeUSDT,
+				ADDR.bridgeCTUSD,
+			].filter((a): a is Address => !!a),
+			startBlock: config.startStablecoin,
 			maxBlockRange: config.blockrange,
 		},
 	},

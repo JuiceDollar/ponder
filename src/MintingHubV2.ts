@@ -18,6 +18,7 @@ ponder.on('MintingHubV2:PositionOpened', async ({ event, context }) => {
 	const isClone: boolean = !isOriginal;
 	const closed: boolean = false;
 	const denied: boolean = false;
+	const isChallenged: boolean = false;
 
 	// ------------------------------------------------------------------
 	// CONST
@@ -201,6 +202,7 @@ ponder.on('MintingHubV2:PositionOpened', async ({ event, context }) => {
 	await PositionV2.create({
 		id: position.toLowerCase(),
 		data: {
+			txHash: event.transaction.hash,
 			position,
 			owner,
 			stablecoinAddress,
@@ -213,6 +215,7 @@ ponder.on('MintingHubV2:PositionOpened', async ({ event, context }) => {
 			denied,
 			closed,
 			original,
+			isChallenged,
 
 			minimumCollateral,
 			riskPremiumPPM,
@@ -294,6 +297,7 @@ ponder.on('MintingHubV2:ChallengeStarted', async ({ event, context }) => {
 	await ChallengeV2.create({
 		id: getChallengeId(event.args.position, event.args.number),
 		data: {
+			txHash: event.transaction.hash,
 			position: event.args.position,
 			number: event.args.number,
 
@@ -309,6 +313,11 @@ ponder.on('MintingHubV2:ChallengeStarted', async ({ event, context }) => {
 			acquiredCollateral: 0n,
 			status: 'Active',
 		},
+	});
+
+	await PositionV2.update({
+		id: event.args.position.toLowerCase(),
+		data: { isChallenged: true },
 	});
 
 	// ------------------------------------------------------------------
@@ -381,6 +390,7 @@ ponder.on('MintingHubV2:ChallengeAverted', async ({ event, context }) => {
 	await ChallengeBidV2.create({
 		id: challengeBidId,
 		data: {
+			txHash: event.transaction.hash,
 			position: event.args.position,
 			number: event.args.number,
 			numberBid: challenge.bids,
@@ -408,7 +418,7 @@ ponder.on('MintingHubV2:ChallengeAverted', async ({ event, context }) => {
 	// update PositionV2 related changes
 	await PositionV2.update({
 		id: event.args.position.toLowerCase(),
-		data: { cooldown: BigInt(cooldown) },
+		data: { cooldown: BigInt(cooldown), isChallenged: challenges[3] !== 0n },
 	});
 
 	// ------------------------------------------------------------------
@@ -482,6 +492,7 @@ ponder.on('MintingHubV2:ChallengeSucceeded', async ({ event, context }) => {
 	await ChallengeBidV2.create({
 		id: challengeBidId,
 		data: {
+			txHash: event.transaction.hash,
 			position: event.args.position,
 			number: event.args.number,
 			numberBid: challenge.bids,
@@ -508,7 +519,7 @@ ponder.on('MintingHubV2:ChallengeSucceeded', async ({ event, context }) => {
 
 	await PositionV2.update({
 		id: event.args.position.toLowerCase(),
-		data: { cooldown: BigInt(cooldown) },
+		data: { cooldown: BigInt(cooldown), isChallenged: challenges[3] !== 0n },
 	});
 
 	// ------------------------------------------------------------------
@@ -532,6 +543,40 @@ ponder.on('MintingHubV2:ChallengeSucceeded', async ({ event, context }) => {
 		update: () => ({
 			lastActiveTime: event.block.timestamp,
 		}),
+	});
+});
+
+// ============ Security Monitoring Events ============
+
+ponder.on('MintingHubV2:ForcedSale', async ({ event, context }) => {
+	const { ForcedSale } = context.db;
+
+	await ForcedSale.create({
+		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		data: {
+			position: event.args.pos,
+			amount: event.args.amount,
+			priceE36MinusDecimals: event.args.priceE36MinusDecimals,
+			blockheight: event.block.number,
+			timestamp: event.block.timestamp,
+			txHash: event.transaction.hash,
+		},
+	});
+});
+
+ponder.on('MintingHubV2:PositionDeniedByGovernance', async ({ event, context }) => {
+	const { PositionDeniedByGovernance } = context.db;
+
+	await PositionDeniedByGovernance.create({
+		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		data: {
+			position: event.args.position,
+			denier: event.args.denier,
+			message: event.args.message,
+			blockheight: event.block.number,
+			timestamp: event.block.timestamp,
+			txHash: event.transaction.hash,
+		},
 	});
 });
 
