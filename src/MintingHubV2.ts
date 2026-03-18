@@ -272,7 +272,7 @@ ponder.on('MintingHubV2:PositionOpened', async ({ event, context }) => {
 
 ponder.on('MintingHubV2:ChallengeStarted', async ({ event, context }) => {
 	const { client } = context;
-	const { ChallengeV2, ActiveUser, Ecosystem } = context.db;
+	const { ChallengeV2, PositionV2, ActiveUser, Ecosystem } = context.db;
 	const { MintingHubV2 } = context.contracts;
 
 	const challenges = await client.readContract({
