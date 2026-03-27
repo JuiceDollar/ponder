@@ -1,17 +1,17 @@
-import { ponder } from '@/generated';
+import { ponder } from 'ponder:registry';
+import { getAddress } from 'viem';
+import { emergencyStopped } from '../ponder.schema';
 
 ponder.on('StablecoinBridge:EmergencyStopped', async ({ event, context }) => {
-	const { EmergencyStopped } = context.db;
+	const { db } = context;
 
-	await EmergencyStopped.create({
+	await db.insert(emergencyStopped).values({
 		id: `${event.transaction.hash}-${event.log.logIndex}`,
-		data: {
-			bridgeAddress: event.log.address,
-			caller: event.args.caller,
-			message: event.args.message,
-			blockheight: event.block.number,
-			timestamp: event.block.timestamp,
-			txHash: event.transaction.hash,
-		},
+		bridgeAddress: getAddress(event.log.address),
+		caller: getAddress(event.args.caller),
+		message: event.args.message,
+		blockheight: event.block.number,
+		timestamp: event.block.timestamp,
+		txHash: event.transaction.hash,
 	});
 });

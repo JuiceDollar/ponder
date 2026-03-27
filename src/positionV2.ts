@@ -1,16 +1,15 @@
-import { ponder } from '@/generated';
+import { ponder } from 'ponder:registry';
+import { getAddress } from 'viem';
 import { PositionV2ABI as PositionABI } from '@juicedollar/jusd';
+import { positionV2, mintingUpdateV2, ecosystem, activeUser } from '../ponder.schema';
 
 ponder.on('PositionV2:MintingUpdate', async ({ event, context }) => {
-	const { client } = context;
-	const { PositionV2, MintingUpdateV2, Ecosystem, ActiveUser } = context.db;
+	const { client, db } = context;
 	const { Savings } = context.contracts;
 
-	// event MintingUpdateV2(uint256 collateral, uint256 price, uint256 minted);
 	const { collateral, price } = event.args;
 	const positionAddress = event.log.address;
 
-	// position updates
 	const availableForClones = await client.readContract({
 		abi: PositionABI,
 		address: positionAddress,
@@ -54,157 +53,116 @@ ponder.on('PositionV2:MintingUpdate', async ({ event, context }) => {
 	});
 
 	const actualVirtualPrice = collateral > 0n ? (collateralRequirement * 10n ** 18n) / collateral : price;
+	const position = await db.find(positionV2, { id: positionAddress.toLowerCase() });
+	if (!position) throw new Error('PositionV2 unknown in MintingUpdate');
 
-	const position = await PositionV2.findUnique({
-		id: positionAddress.toLowerCase(),
+	await db.update(positionV2, { id: positionAddress.toLowerCase() }).set({
+		collateralBalance: collateral,
+		price,
+		availableForMinting,
+		availableForClones,
+		cooldown: BigInt(cooldown),
+		closed: collateral == 0n,
+		principal,
+		virtualPrice,
+		actualVirtualPrice,
 	});
 
-	if (!position) throw new Error('PositionV2 unknown in MintingUpdat');
-
-	await PositionV2.update({
-		id: positionAddress.toLowerCase(),
-		data: {
-			collateralBalance: collateral,
-			price,
-			availableForMinting,
-			availableForClones,
-			cooldown: BigInt(cooldown),
-			closed: collateral == 0n,
-			principal,
-			virtualPrice,
-			actualVirtualPrice,
-		},
-	});
-
-	// minting updates
 	const idEco = `PositionMintingUpdates:${positionAddress.toLowerCase()}`;
-	await Ecosystem.upsert({
-		id: idEco,
-		create: {
-			value: '',
-			amount: 1n,
-		},
-		update: ({ current }) => ({
-			amount: current.amount + 1n,
-		}),
-	});
+	await db
+		.insert(ecosystem)
+		.values({ id: idEco, value: '', amount: 1n })
+		.onConflictDoUpdate((row) => ({ amount: row.amount + 1n }));
 
-	const mintingCounter = (
-		await Ecosystem.findUnique({
-			id: idEco,
-		})
-	)?.amount;
+	const ecoRow = await db.find(ecosystem, { id: idEco });
+	const mintingCounter = ecoRow?.amount;
 	if (mintingCounter === undefined) throw new Error('MintingCounter not found.');
 
-	const idMinting = function (cnt: number | bigint) {
-		return `${positionAddress.toLowerCase()}-${cnt}`;
-	};
-
+	const idMinting = (cnt: number | bigint) => `${positionAddress.toLowerCase()}-${cnt}`;
 	const annualInterestPPM = baseRatePPM + position.riskPremiumPPM;
 
-	const getFeeTimeframe = function (): number {
-		const OneMonth = 60 * 60 * 24 * 30;
+	const getFeeTimeframe = (): number => {
+		const oneMonth = 60 * 60 * 24 * 30;
 		const secToExp = Math.floor(parseInt(position.expiration.toString()) - parseInt(event.block.timestamp.toString()));
-		return Math.max(OneMonth, secToExp);
+		return Math.max(oneMonth, secToExp);
 	};
 
-	const getFeePPM = function (): bigint {
-		const OneYear = 60 * 60 * 24 * 365;
-		const calc: number = (getFeeTimeframe() * (baseRatePPM + position.riskPremiumPPM)) / OneYear;
+	const getFeePPM = (): bigint => {
+		const oneYear = 60 * 60 * 24 * 365;
+		const calc: number = (getFeeTimeframe() * (baseRatePPM + position.riskPremiumPPM)) / oneYear;
 		return BigInt(Math.floor(calc));
 	};
 
-	const getFeePaid = function (amount: bigint): bigint {
-		return (getFeePPM() * amount) / 1_000_000n;
-	};
-
 	if (mintingCounter === 1n) {
-		await MintingUpdateV2.create({
+		await db.insert(mintingUpdateV2).values({
 			id: idMinting(1),
-			data: {
-				txHash: event.transaction.hash,
-				created: event.block.timestamp,
-				position: position.position,
-				owner: position.owner,
-				isClone: position.original.toLowerCase() != position.position.toLowerCase(),
-				collateral: position.collateral,
-				collateralName: position.collateralName,
-				collateralSymbol: position.collateralSymbol,
-				collateralDecimals: position.collateralDecimals,
-				size: collateral,
-				price: price,
-				minted: BigInt(0),
-				sizeAdjusted: collateral,
-				priceAdjusted: price,
-				mintedAdjusted: BigInt(0),
-				annualInterestPPM: annualInterestPPM,
-				basePremiumPPM: baseRatePPM,
-				riskPremiumPPM: position.riskPremiumPPM,
-				reserveContribution: position.reserveContribution,
-				feeTimeframe: getFeeTimeframe(),
-				feePPM: parseInt(getFeePPM().toString()),
-				feePaid: BigInt(0),
-			},
+			txHash: event.transaction.hash,
+			created: event.block.timestamp,
+			position: getAddress(position.position),
+			owner: getAddress(position.owner),
+			isClone: position.original.toLowerCase() != position.position.toLowerCase(),
+			collateral: getAddress(position.collateral),
+			collateralName: position.collateralName,
+			collateralSymbol: position.collateralSymbol,
+			collateralDecimals: position.collateralDecimals,
+			size: collateral,
+			price: price,
+			minted: 0n,
+			sizeAdjusted: collateral,
+			priceAdjusted: price,
+			mintedAdjusted: 0n,
+			annualInterestPPM: annualInterestPPM,
+			basePremiumPPM: baseRatePPM,
+			riskPremiumPPM: position.riskPremiumPPM,
+			reserveContribution: position.reserveContribution,
+			feeTimeframe: getFeeTimeframe(),
+			feePPM: parseInt(getFeePPM().toString()),
+			feePaid: 0n,
 		});
 	} else {
-		const prev = await MintingUpdateV2.findUnique({
-			id: idMinting(mintingCounter - 1n),
-		});
-		if (prev == null) throw new Error(`previous minting update not found.`);
+		const prev = await db.find(mintingUpdateV2, { id: idMinting(mintingCounter - 1n) });
+		if (prev == null) throw new Error('previous minting update not found.');
 
 		const sizeAdjusted = collateral - prev.size;
 		const priceAdjusted = price - prev.price;
-		const mintedAdjusted = BigInt(0) - prev.minted;
-		const basePremiumPPMAdjusted = baseRatePPM - prev.basePremiumPPM;
+		const mintedAdjusted = 0n - prev.minted;
 
-		await MintingUpdateV2.create({
+		await db.insert(mintingUpdateV2).values({
 			id: idMinting(mintingCounter),
-			data: {
-				txHash: event.transaction.hash,
-				created: event.block.timestamp,
-				position: position.position,
-				owner: position.owner,
-				isClone: position.original.toLowerCase() != position.position.toLowerCase(),
-				collateral: position.collateral,
-				collateralName: position.collateralName,
-				collateralSymbol: position.collateralSymbol,
-				collateralDecimals: position.collateralDecimals,
-				size: collateral,
-				price: price,
-				minted: BigInt(0),
-				sizeAdjusted,
-				priceAdjusted,
-				mintedAdjusted,
-				annualInterestPPM,
-				basePremiumPPM: baseRatePPM,
-				riskPremiumPPM: position.riskPremiumPPM,
-				reserveContribution: position.reserveContribution,
-				feeTimeframe: getFeeTimeframe(),
-				feePPM: parseInt(getFeePPM().toString()),
-				feePaid: BigInt(0),
-			},
+			txHash: event.transaction.hash,
+			created: event.block.timestamp,
+			position: getAddress(position.position),
+			owner: getAddress(position.owner),
+			isClone: position.original.toLowerCase() != position.position.toLowerCase(),
+			collateral: getAddress(position.collateral),
+			collateralName: position.collateralName,
+			collateralSymbol: position.collateralSymbol,
+			collateralDecimals: position.collateralDecimals,
+			size: collateral,
+			price: price,
+			minted: 0n,
+			sizeAdjusted,
+			priceAdjusted,
+			mintedAdjusted,
+			annualInterestPPM,
+			basePremiumPPM: baseRatePPM,
+			riskPremiumPPM: position.riskPremiumPPM,
+			reserveContribution: position.reserveContribution,
+			feeTimeframe: getFeeTimeframe(),
+			feePPM: parseInt(getFeePPM().toString()),
+			feePaid: 0n,
 		});
 	}
 
-	// user updates
-	await ActiveUser.upsert({
-		id: event.transaction.from,
-		create: {
-			lastActiveTime: event.block.timestamp,
-		},
-		update: () => ({
-			lastActiveTime: event.block.timestamp,
-		}),
-	});
+	await db
+		.insert(activeUser)
+		.values({ id: getAddress(event.transaction.from), lastActiveTime: event.block.timestamp })
+		.onConflictDoUpdate(() => ({ lastActiveTime: event.block.timestamp }));
 });
 
 ponder.on('PositionV2:PositionDenied', async ({ event, context }) => {
-	const { PositionV2, ActiveUser } = context.db;
-	const { client } = context;
-
-	const position = await PositionV2.findUnique({
-		id: event.log.address.toLowerCase(),
-	});
+	const { client, db } = context;
+	const position = await db.find(positionV2, { id: event.log.address.toLowerCase() });
 
 	const cooldown = await client.readContract({
 		abi: PositionABI,
@@ -213,47 +171,28 @@ ponder.on('PositionV2:PositionDenied', async ({ event, context }) => {
 	});
 
 	if (position) {
-		await PositionV2.update({
-			id: event.log.address.toLowerCase(),
-			data: {
-				cooldown: BigInt(cooldown),
-				denied: true,
-			},
+		await db.update(positionV2, { id: event.log.address.toLowerCase() }).set({
+			cooldown: BigInt(cooldown),
+			denied: true,
 		});
 	}
 
-	await ActiveUser.upsert({
-		id: event.transaction.from,
-		create: {
-			lastActiveTime: event.block.timestamp,
-		},
-		update: () => ({
-			lastActiveTime: event.block.timestamp,
-		}),
-	});
+	await db
+		.insert(activeUser)
+		.values({ id: getAddress(event.transaction.from), lastActiveTime: event.block.timestamp })
+		.onConflictDoUpdate(() => ({ lastActiveTime: event.block.timestamp }));
 });
 
 ponder.on('PositionV2:OwnershipTransferred', async ({ event, context }) => {
-	const { PositionV2, ActiveUser } = context.db;
-
-	const position = await PositionV2.findUnique({
-		id: event.log.address.toLowerCase(),
-	});
+	const { db } = context;
+	const position = await db.find(positionV2, { id: event.log.address.toLowerCase() });
 	if (position) {
-		await PositionV2.update({
-			id: event.log.address.toLowerCase(),
-			data: {
-				owner: event.args.newOwner,
-			},
+		await db.update(positionV2, { id: event.log.address.toLowerCase() }).set({
+			owner: getAddress(event.args.newOwner),
 		});
 	}
-	await ActiveUser.upsert({
-		id: event.transaction.from,
-		create: {
-			lastActiveTime: event.block.timestamp,
-		},
-		update: () => ({
-			lastActiveTime: event.block.timestamp,
-		}),
-	});
+	await db
+		.insert(activeUser)
+		.values({ id: getAddress(event.transaction.from), lastActiveTime: event.block.timestamp })
+		.onConflictDoUpdate(() => ({ lastActiveTime: event.block.timestamp }));
 });

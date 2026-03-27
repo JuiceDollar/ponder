@@ -38,6 +38,8 @@ jobs:
           context: .
           push: true
           tags: ${{ env.DOCKER_TAGS }}
+          build-args: |
+            COMMIT_HASH=${{ github.sha }}
 
       - name: Log in to Azure
         uses: azure/login@v2

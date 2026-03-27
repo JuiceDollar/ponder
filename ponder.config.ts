@@ -1,6 +1,8 @@
-import { createConfig } from '@ponder/core';
+import { createConfig, factory, rateLimit } from 'ponder';
 import { testnet, mainnet } from './chains';
-import { Address, http } from 'viem';
+import { Address } from 'viem';
+import { AbiEvent } from 'abitype';
+import { citreaTransport } from './citrea-transport-fix';
 
 import {
 	ADDRESS,
@@ -23,7 +25,6 @@ const MAINNET_CONFIG = {
 	rpc: process.env.RPC_URL_MAINNET ?? mainnet.rpcUrls.default.http[0],
 	startStablecoin: 2650850,
 	startMintingHubV2: 2650850,
-	blockrange: 1000,
 	maxRequestsPerSecond: 50,
 	pollingInterval: 5_000,
 };
@@ -32,7 +33,6 @@ const TESTNET_CONFIG = {
 	rpc: process.env.RPC_URL_TESTNET ?? testnet.rpcUrls.default.http[0],
 	startStablecoin: 21252514,
 	startMintingHubV2: 21252514,
-	blockrange: 1000,
 	maxRequestsPerSecond: 50,
 	pollingInterval: 5_000,
 };
@@ -44,78 +44,70 @@ export const CONFIG = {
 
 export const config = CONFIG[Id]!;
 
-const openPositionEventV2 = MintingHubV2ABI.find((a) => a.type === 'event' && a.name === 'PositionOpened');
-if (openPositionEventV2 === undefined) throw new Error('openPositionEventV2 not found.');
+const openPositionEventV2 = MintingHubV2ABI.find((a) => a.type === 'event' && a.name === 'PositionOpened') as AbiEvent;
+if (!openPositionEventV2) throw new Error('openPositionEventV2 not found.');
 
 export default createConfig({
-	networks: {
+	chains: {
 		[chain.name]: {
-			chainId: Id,
-			maxRequestsPerSecond: config.maxRequestsPerSecond,
+			id: Id,
+			rpc: rateLimit(citreaTransport(config.rpc), { requestsPerSecond: config.maxRequestsPerSecond }),
 			pollingInterval: config.pollingInterval,
-			transport: http(config.rpc),
 		},
 	},
 	contracts: {
 		Stablecoin: {
-			network: chain.name,
+			chain: chain.name,
 			abi: JuiceDollarABI,
 			address: ADDR.juiceDollar as Address,
 			startBlock: config.startStablecoin,
-			maxBlockRange: config.blockrange,
 		},
 		Equity: {
-			network: chain.name,
+			chain: chain.name,
 			abi: EquityABI,
 			address: ADDR.equity as Address,
 			startBlock: config.startStablecoin,
-			maxBlockRange: config.blockrange,
 		},
 		MintingHubV2: {
 			// V2
-			network: chain.name,
+			chain: chain.name,
 			abi: MintingHubV2ABI,
 			address: ADDR.mintingHubGateway as Address,
 			startBlock: config.startMintingHubV2,
-			maxBlockRange: config.blockrange,
 		},
 		PositionV2: {
 			// V2
-			network: chain.name,
+			chain: chain.name,
 			abi: PositionV2ABI,
-			factory: {
+			address: factory({
 				address: ADDR.mintingHubGateway as Address,
 				event: openPositionEventV2,
 				parameter: 'position',
-			},
+			}),
 			startBlock: config.startMintingHubV2,
-			maxBlockRange: config.blockrange,
 		},
 		Savings: {
 			// V2
-			network: chain.name,
+			chain: chain.name,
 			abi: SavingsABI,
 			address: ADDR.savingsGateway as Address,
 			startBlock: config.startMintingHubV2,
-			maxBlockRange: config.blockrange,
 		},
 		Roller: {
 			// V2
-			network: chain.name,
+			chain: chain.name,
 			abi: PositionRollerABI,
 			address: ADDR.roller as Address,
 			startBlock: config.startMintingHubV2,
-			maxBlockRange: config.blockrange,
 		},
 		FrontendGateway: {
-			network: chain.name,
+			chain: chain.name,
 			abi: FrontendGatewayABI,
 			address: ADDR.frontendGateway as Address,
 			startBlock: config.startMintingHubV2,
-			maxBlockRange: config.blockrange,
 		},
 		StablecoinBridge: {
-			network: chain.name,
+			chain: chain.name,
 			abi: StablecoinBridgeABI,
 			address: [
 				ADDR.bridgeStartUSD,
@@ -124,7 +116,6 @@ export default createConfig({
 				ADDR.bridgeCTUSD,
 			].filter((a): a is Address => !!a),
 			startBlock: config.startStablecoin,
-			maxBlockRange: config.blockrange,
 		},
 	},
 });
