@@ -120,12 +120,11 @@ ponder.on('Savings:Saved', async ({ event, context }) => {
 		.onConflictDoUpdate(() => ({ amountSaved }));
 
 	if (!existingUser) {
-		const currentStats = await db.find(savingsStats, { id: 'global' });
 		await db
 			.insert(savingsStats)
 			.values({ id: 'global', totalUsers: 1, lastUpdated: event.block.timestamp })
-			.onConflictDoUpdate(() => ({
-				totalUsers: (currentStats?.totalUsers || 0) + 1,
+			.onConflictDoUpdate((row) => ({
+				totalUsers: row.totalUsers + 1,
 				lastUpdated: event.block.timestamp,
 			}));
 	}

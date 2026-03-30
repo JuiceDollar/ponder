@@ -94,7 +94,7 @@ ponder.on('FrontendGateway:InvestRewardAdded', async ({ event, context }) => {
 	await db
 		.insert(frontendRewardsVolumeMapping)
 		.values({
-			id: `${frontendCode.toLowerCase()}-${getAddress(user)}`,
+			id: `${frontendCode}-${getAddress(user)}`,
 			frontendCode,
 			referred: getAddress(user),
 			volume: reward,
@@ -150,7 +150,7 @@ ponder.on('FrontendGateway:RedeemRewardAdded', async ({ event, context }) => {
 	await db
 		.insert(frontendRewardsVolumeMapping)
 		.values({
-			id: `${frontendCode.toLowerCase()}-${getAddress(user)}`,
+			id: `${frontendCode}-${getAddress(user)}`,
 			frontendCode,
 			referred: getAddress(user),
 			volume: reward,
@@ -206,7 +206,7 @@ ponder.on('FrontendGateway:SavingsRewardAdded', async ({ event, context }) => {
 	await db
 		.insert(frontendRewardsVolumeMapping)
 		.values({
-			id: `${frontendCode.toLowerCase()}-${getAddress(saver)}`,
+			id: `${frontendCode}-${getAddress(saver)}`,
 			frontendCode,
 			referred: getAddress(saver),
 			volume: reward,
@@ -236,7 +236,6 @@ ponder.on('FrontendGateway:PositionRewardAdded', async ({ event, context }) => {
 
 	if (!owner) return;
 	const ownerAddress = getAddress(owner);
-	const normalizedFrontendCode = frontendCode.toLowerCase();
 
 	await db.insert(positionRewardAdded).values({
 		id: `${event.transaction.hash}-${event.log.logIndex}`,
@@ -244,7 +243,7 @@ ponder.on('FrontendGateway:PositionRewardAdded', async ({ event, context }) => {
 		position: getAddress(position),
 		amount,
 		reward,
-		frontendCode: normalizedFrontendCode,
+		frontendCode,
 		timestamp: event.block.timestamp,
 		txHash: event.transaction.hash,
 	});
@@ -252,7 +251,7 @@ ponder.on('FrontendGateway:PositionRewardAdded', async ({ event, context }) => {
 	await db
 		.insert(frontendRewardsMapping)
 		.values({
-			id: normalizedFrontendCode,
+			id: frontendCode,
 			referred: [ownerAddress],
 			totalReffered: 1,
 			totalVolume: reward,
@@ -273,8 +272,8 @@ ponder.on('FrontendGateway:PositionRewardAdded', async ({ event, context }) => {
 	await db
 		.insert(frontendRewardsVolumeMapping)
 		.values({
-			id: `${normalizedFrontendCode}-${ownerAddress}`,
-			frontendCode: normalizedFrontendCode,
+			id: `${frontendCode}-${ownerAddress}`,
+			frontendCode,
 			referred: ownerAddress,
 			volume: reward,
 			timestamp: event.block.timestamp,
@@ -283,7 +282,7 @@ ponder.on('FrontendGateway:PositionRewardAdded', async ({ event, context }) => {
 
 	await db.insert(frontendBonusHistoryMapping).values({
 		id: `${event.transaction.hash}-${event.log.logIndex}`,
-		frontendCode: normalizedFrontendCode,
+		frontendCode,
 		payout: reward,
 		source: 'PositionRewardAdded',
 		timestamp: event.block.timestamp,
