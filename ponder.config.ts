@@ -8,7 +8,7 @@ import {
 	ADDRESS,
 	JuiceDollarABI,
 	EquityABI,
-	MintingHubGatewayV2ABI,
+	MintingHubV3ABI,
 	PositionRollerV2ABI,
 	PositionV2ABI,
 	SavingsGatewayV2ABI,
@@ -46,7 +46,7 @@ export const CONFIG = {
 
 export const config = CONFIG[Id]!;
 
-const openPositionEvent = MintingHubGatewayV2ABI.find((a) => a.type === 'event' && a.name === 'PositionOpened') as AbiEvent;
+const openPositionEvent = MintingHubV3ABI.find((a) => a.type === 'event' && a.name === 'PositionOpened') as AbiEvent;
 if (!openPositionEvent) throw new Error('openPositionEvent not found.');
 
 // V3 contracts deployed at this block on mainnet
@@ -81,9 +81,9 @@ export default createConfig({
 			startBlock: config.startStablecoin,
 		},
 		MintingHubV2: {
-			// V2 + V3 (identical event signatures)
+			// V2 + V3 (V3 ABI is superset — includes RateProposed/RateChanged from Leadrate)
 			chain: chain.name,
-			abi: MintingHubGatewayV2ABI,
+			abi: MintingHubV3ABI,
 			address: [ADDR.mintingHubGateway, ADDR.mintingHub].filter(isDeployed),
 			startBlock: config.startMintingHubV2,
 		},

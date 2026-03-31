@@ -9,6 +9,8 @@ import {
 	ecosystem,
 	forcedSale,
 	positionDeniedByGovernance,
+	mintingHubRateProposed,
+	mintingHubRateChanged,
 } from '../ponder.schema';
 
 ponder.on('MintingHubV2:PositionOpened', async ({ event, context }) => {
@@ -446,6 +448,34 @@ ponder.on('MintingHubV2:PositionDeniedByGovernance', async ({ event, context }) 
 		blockheight: event.block.number,
 		timestamp: event.block.timestamp,
 		txHash: event.transaction.hash,
+	});
+});
+
+ponder.on('MintingHubV2:RateProposed', async ({ event, context }) => {
+	const { db } = context;
+	const { who, nextChange, nextRate } = event.args;
+
+	await db.insert(mintingHubRateProposed).values({
+		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		created: event.block.timestamp,
+		blockheight: event.block.number,
+		txHash: event.transaction.hash,
+		proposer: getAddress(who),
+		nextRate: nextRate,
+		nextChange: nextChange,
+	});
+});
+
+ponder.on('MintingHubV2:RateChanged', async ({ event, context }) => {
+	const { db } = context;
+	const { newRate } = event.args;
+
+	await db.insert(mintingHubRateChanged).values({
+		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		created: event.block.timestamp,
+		blockheight: event.block.number,
+		txHash: event.transaction.hash,
+		approvedRate: newRate,
 	});
 });
 

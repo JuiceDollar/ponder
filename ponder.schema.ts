@@ -468,6 +468,24 @@ export const stablecoinTransferHistory = onchainTable('stablecoin_transfer_histo
 	transactionTo: t.text(),
 }));
 
+export const mintingHubRateProposed = onchainTable('minting_hub_rate_proposed', (t) => ({
+	id: t.text().primaryKey(),
+	created: t.bigint().notNull(),
+	blockheight: t.bigint().notNull(),
+	txHash: t.text().notNull(),
+	proposer: t.text().notNull(),
+	nextRate: t.integer().notNull(),
+	nextChange: t.integer().notNull(),
+}));
+
+export const mintingHubRateChanged = onchainTable('minting_hub_rate_changed', (t) => ({
+	id: t.text().primaryKey(),
+	created: t.bigint().notNull(),
+	blockheight: t.bigint().notNull(),
+	txHash: t.text().notNull(),
+	approvedRate: t.integer().notNull(),
+}));
+
 export const savingsVaultDeposit = onchainTable('savings_vault_deposit', (t) => ({
 	id: t.text().primaryKey(),
 	sender: t.text().notNull(),

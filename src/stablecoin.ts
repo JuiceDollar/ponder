@@ -1,7 +1,7 @@
 import { ponder } from 'ponder:registry';
 import { Address, decodeEventLog, getAddress, zeroAddress } from 'viem';
 import { ADDR, MINTING_HUB_ADDRESSES } from '../ponder.config';
-import { MintingHubGatewayV2ABI } from '@juicedollar/jusd';
+import { MintingHubV3ABI } from '@juicedollar/jusd';
 import { TEMPORAL_FRAMES, getIdByTemporalFrame, getTimestampByTemporalFrame } from './utils/timestamps';
 import {
 	poolShare,
@@ -184,7 +184,7 @@ ponder.on('Stablecoin:Transfer', async ({ event, context }) => {
 				.filter((log) => MINTING_HUB_ADDRESSES.has(log.address.toLowerCase()))
 				.map(({ data, topics }) =>
 					decodeEventLog({
-						abi: MintingHubGatewayV2ABI,
+						abi: MintingHubV3ABI,
 						data: data as `0x${string}`,
 						topics: topics as [`0x${string}`, ...`0x${string}`[]],
 					})
