@@ -1,7 +1,7 @@
 import { ponder } from 'ponder:registry';
-import { JuiceDollarABI as StablecoinABI, SavingsGatewayV2ABI } from '@juicedollar/jusd';
+import { JuiceDollarABI as StablecoinABI, SavingsV3ABI } from '@juicedollar/jusd';
 import { ADDR } from '../ponder.config';
-import { decodeFunctionData, getAddress, zeroAddress } from 'viem';
+import { getAddress } from 'viem';
 import {
 	savingsRateProposed,
 	savingsRateChanged,
@@ -17,7 +17,26 @@ import {
 	ecosystem,
 } from '../ponder.schema';
 
-ponder.on('Savings:RateProposed', async ({ event, context }) => {
+/** Read the combined JUSD balance across V2 and V3 Savings contracts. */
+async function readTotalSavedAcrossVersions(client: Parameters<Parameters<typeof ponder.on>[1]>[0]['context']['client']) {
+	const [v2Balance, v3Balance] = await Promise.all([
+		client.readContract({
+			abi: StablecoinABI,
+			address: ADDR.juiceDollar,
+			functionName: 'balanceOf',
+			args: [ADDR.savingsGateway],
+		}),
+		client.readContract({
+			abi: StablecoinABI,
+			address: ADDR.juiceDollar,
+			functionName: 'balanceOf',
+			args: [ADDR.savings],
+		}),
+	]);
+	return v2Balance + v3Balance;
+}
+
+ponder.on('SavingsV3:RateProposed', async ({ event, context }) => {
 	const { db } = context;
 	const { who, nextChange, nextRate } = event.args;
 
@@ -32,7 +51,7 @@ ponder.on('Savings:RateProposed', async ({ event, context }) => {
 	});
 });
 
-ponder.on('Savings:RateChanged', async ({ event, context }) => {
+ponder.on('SavingsV3:RateChanged', async ({ event, context }) => {
 	const { db } = context;
 	const { newRate } = event.args;
 
@@ -45,25 +64,16 @@ ponder.on('Savings:RateChanged', async ({ event, context }) => {
 	});
 });
 
-ponder.on('Savings:Saved', async ({ event, context }) => {
+ponder.on('SavingsV3:Saved', async ({ event, context }) => {
 	const { client, db } = context;
 	const { amount } = event.args;
 	const account = getAddress(event.args.account);
 
 	const ratePPM = await client.readContract({
-		abi: SavingsGatewayV2ABI,
-		address: ADDR.savingsGateway,
+		abi: SavingsV3ABI,
+		address: ADDR.savings,
 		functionName: 'currentRatePPM',
 	});
-
-	let frontendCode: string | undefined;
-	if (event.transaction.to?.toLowerCase() === ADDR.savingsGateway.toLowerCase()) {
-		const { args } = decodeFunctionData({
-			abi: SavingsGatewayV2ABI,
-			data: event.transaction.input,
-		});
-		frontendCode = args.at(-1) as string;
-	}
 
 	await db
 		.insert(savingsSavedMapping)
@@ -97,7 +107,7 @@ ponder.on('Savings:Saved', async ({ event, context }) => {
 		rate: ratePPM,
 		total: latestSaved ? latestSaved.amount : amount,
 		balance,
-		frontendCode: frontendCode ?? null,
+		frontendCode: null,
 	});
 
 	await db
@@ -106,8 +116,8 @@ ponder.on('Savings:Saved', async ({ event, context }) => {
 		.onConflictDoUpdate((row) => ({ amount: row.amount + amount }));
 
 	const [amountSaved] = await client.readContract({
-		abi: SavingsGatewayV2ABI,
-		address: ADDR.savingsGateway,
+		abi: SavingsV3ABI,
+		address: ADDR.savings,
 		functionName: 'savings',
 		args: [account],
 	});
@@ -129,23 +139,7 @@ ponder.on('Savings:Saved', async ({ event, context }) => {
 			}));
 	}
 
-	const [v2Balance, v3Balance] = await Promise.all([
-		context.client.readContract({
-			abi: StablecoinABI,
-			address: ADDR.juiceDollar,
-			functionName: 'balanceOf',
-			args: [ADDR.savingsGateway],
-		}),
-		ADDR.savings && ADDR.savings !== zeroAddress
-			? context.client.readContract({
-					abi: StablecoinABI,
-					address: ADDR.juiceDollar,
-					functionName: 'balanceOf',
-					args: [ADDR.savings],
-				})
-			: Promise.resolve(0n),
-	]);
-	const totalSaved = v2Balance + v3Balance;
+	const totalSaved = await readTotalSavedAcrossVersions(client);
 
 	const startTime = (event.block.timestamp / 86400n) * 86400n;
 	await db
@@ -154,14 +148,14 @@ ponder.on('Savings:Saved', async ({ event, context }) => {
 		.onConflictDoUpdate(() => ({ total: totalSaved }));
 });
 
-ponder.on('Savings:InterestCollected', async ({ event, context }) => {
+ponder.on('SavingsV3:InterestCollected', async ({ event, context }) => {
 	const { client, db } = context;
-	const { interest } = event.args;
+	const { interest, compounded } = event.args;
 	const account = getAddress(event.args.account);
 
 	const ratePPM = await client.readContract({
-		abi: SavingsGatewayV2ABI,
-		address: ADDR.savingsGateway,
+		abi: SavingsV3ABI,
+		address: ADDR.savings,
 		functionName: 'currentRatePPM',
 	});
 
@@ -197,6 +191,7 @@ ponder.on('Savings:InterestCollected', async ({ event, context }) => {
 		rate: ratePPM,
 		total: latestInterest ? latestInterest.amount : interest,
 		balance,
+		compounded,
 	});
 
 	await db
@@ -205,8 +200,8 @@ ponder.on('Savings:InterestCollected', async ({ event, context }) => {
 		.onConflictDoUpdate((row) => ({ amount: row.amount + interest }));
 
 	const [amountSaved] = await client.readContract({
-		abi: SavingsGatewayV2ABI,
-		address: ADDR.savingsGateway,
+		abi: SavingsV3ABI,
+		address: ADDR.savings,
 		functionName: 'savings',
 		args: [account],
 	});
@@ -220,14 +215,14 @@ ponder.on('Savings:InterestCollected', async ({ event, context }) => {
 		}));
 });
 
-ponder.on('Savings:Withdrawn', async ({ event, context }) => {
+ponder.on('SavingsV3:Withdrawn', async ({ event, context }) => {
 	const { client, db } = context;
 	const { amount } = event.args;
 	const account = getAddress(event.args.account);
 
 	const ratePPM = await client.readContract({
-		abi: SavingsGatewayV2ABI,
-		address: ADDR.savingsGateway,
+		abi: SavingsV3ABI,
+		address: ADDR.savings,
 		functionName: 'currentRatePPM',
 	});
 
@@ -271,8 +266,8 @@ ponder.on('Savings:Withdrawn', async ({ event, context }) => {
 		.onConflictDoUpdate((row) => ({ amount: row.amount + amount }));
 
 	const [amountSaved] = await client.readContract({
-		abi: SavingsGatewayV2ABI,
-		address: ADDR.savingsGateway,
+		abi: SavingsV3ABI,
+		address: ADDR.savings,
 		functionName: 'savings',
 		args: [account],
 	});
@@ -282,23 +277,7 @@ ponder.on('Savings:Withdrawn', async ({ event, context }) => {
 		.values({ id: event.args.account, amountSaved, interestReceived: 0n })
 		.onConflictDoUpdate(() => ({ amountSaved }));
 
-	const [v2Balance, v3Balance] = await Promise.all([
-		context.client.readContract({
-			abi: StablecoinABI,
-			address: ADDR.juiceDollar,
-			functionName: 'balanceOf',
-			args: [ADDR.savingsGateway],
-		}),
-		ADDR.savings && ADDR.savings !== zeroAddress
-			? context.client.readContract({
-					abi: StablecoinABI,
-					address: ADDR.juiceDollar,
-					functionName: 'balanceOf',
-					args: [ADDR.savings],
-				})
-			: Promise.resolve(0n),
-	]);
-	const totalSaved = v2Balance + v3Balance;
+	const totalSaved = await readTotalSavedAcrossVersions(client);
 
 	const startTime = (event.block.timestamp / 86400n) * 86400n;
 	await db

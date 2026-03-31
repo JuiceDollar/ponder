@@ -1,36 +1,50 @@
 import { ponder } from 'ponder:registry';
 import { getAddress } from 'viem';
-import { PositionV2ABI as PositionABI } from '@juicedollar/jusd';
+import { PositionV2ABI as PositionABI, SavingsGatewayV2ABI } from '@juicedollar/jusd';
+import { ADDR } from '../ponder.config';
 import { positionV2, mintingUpdateV2, ecosystem, activeUser } from '../ponder.schema';
+
+/** Resolve the Savings contract address for a position by reading its hub. */
+async function getSavingsAddress(
+	client: Parameters<Parameters<typeof ponder.on>[1]>[0]['context']['client'],
+	positionAddress: `0x${string}`
+): Promise<`0x${string}`> {
+	const hubAddress = await client.readContract({
+		abi: PositionABI,
+		address: positionAddress,
+		functionName: 'hub',
+	});
+	return hubAddress.toLowerCase() === ADDR.mintingHub?.toLowerCase() ? ADDR.savings : ADDR.savingsGateway;
+}
 
 ponder.on('PositionV2:MintingUpdate', async ({ event, context }) => {
 	const { client, db } = context;
-	const { Savings } = context.contracts;
 
 	const { collateral, price } = event.args;
 	const positionAddress = event.log.address;
 
-	const availableForClones = await client.readContract({
-		abi: PositionABI,
-		address: positionAddress,
-		functionName: 'availableForClones',
-	});
-
-	const availableForMinting = await client.readContract({
-		abi: PositionABI,
-		address: positionAddress,
-		functionName: 'availableForMinting',
-	});
-
-	const cooldown = await client.readContract({
-		abi: PositionABI,
-		address: positionAddress,
-		functionName: 'cooldown',
-	});
+	const [availableForClones, availableForMinting, cooldown, savingsAddress] = await Promise.all([
+		client.readContract({
+			abi: PositionABI,
+			address: positionAddress,
+			functionName: 'availableForClones',
+		}),
+		client.readContract({
+			abi: PositionABI,
+			address: positionAddress,
+			functionName: 'availableForMinting',
+		}),
+		client.readContract({
+			abi: PositionABI,
+			address: positionAddress,
+			functionName: 'cooldown',
+		}),
+		getSavingsAddress(client, positionAddress),
+	]);
 
 	const baseRatePPM = await client.readContract({
-		abi: Savings.abi,
-		address: Savings.address,
+		abi: SavingsGatewayV2ABI,
+		address: savingsAddress,
 		functionName: 'currentRatePPM',
 	});
 

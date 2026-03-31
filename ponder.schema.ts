@@ -124,6 +124,7 @@ export const savingsInterest = onchainTable('savings_interest', (t) => ({
 	rate: t.integer().notNull(),
 	total: t.bigint().notNull(),
 	balance: t.bigint().notNull(),
+	compounded: t.boolean(),
 }));
 
 export const savingsInterestMapping = onchainTable('savings_interest_mapping', (t) => ({
@@ -465,4 +466,36 @@ export const stablecoinTransferHistory = onchainTable('stablecoin_transfer_histo
 	txHash: t.text().notNull(),
 	blockheight: t.bigint().notNull(),
 	transactionTo: t.text(),
+}));
+
+export const savingsVaultDeposit = onchainTable('savings_vault_deposit', (t) => ({
+	id: t.text().primaryKey(),
+	sender: t.text().notNull(),
+	owner: t.text().notNull(),
+	assets: t.bigint().notNull(),
+	shares: t.bigint().notNull(),
+	blockheight: t.bigint().notNull(),
+	timestamp: t.bigint().notNull(),
+	txHash: t.text().notNull(),
+}));
+
+export const savingsVaultWithdraw = onchainTable('savings_vault_withdraw', (t) => ({
+	id: t.text().primaryKey(),
+	sender: t.text().notNull(),
+	receiver: t.text().notNull(),
+	owner: t.text().notNull(),
+	assets: t.bigint().notNull(),
+	shares: t.bigint().notNull(),
+	blockheight: t.bigint().notNull(),
+	timestamp: t.bigint().notNull(),
+	txHash: t.text().notNull(),
+}));
+
+export const savingsVaultInterestClaimed = onchainTable('savings_vault_interest_claimed', (t) => ({
+	id: t.text().primaryKey(),
+	interest: t.bigint().notNull(),
+	totalClaimed: t.bigint().notNull(),
+	blockheight: t.bigint().notNull(),
+	timestamp: t.bigint().notNull(),
+	txHash: t.text().notNull(),
 }));

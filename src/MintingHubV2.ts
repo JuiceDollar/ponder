@@ -236,11 +236,10 @@ ponder.on('MintingHubV2:PositionOpened', async ({ event, context }) => {
 
 ponder.on('MintingHubV2:ChallengeStarted', async ({ event, context }) => {
 	const { client, db } = context;
-	const { MintingHubV2 } = context.contracts;
 
 	const challenges = await client.readContract({
-		abi: MintingHubV2.abi,
-		address: MintingHubV2.address,
+		abi: context.contracts.MintingHubV2.abi,
+		address: event.log.address,
 		functionName: 'challenges',
 		args: [event.args.number],
 	});
@@ -289,11 +288,10 @@ ponder.on('MintingHubV2:ChallengeStarted', async ({ event, context }) => {
 
 ponder.on('MintingHubV2:ChallengeAverted', async ({ event, context }) => {
 	const { client, db } = context;
-	const { MintingHubV2 } = context.contracts;
 
 	const challenges = await client.readContract({
-		abi: MintingHubV2.abi,
-		address: MintingHubV2.address,
+		abi: context.contracts.MintingHubV2.abi,
+		address: event.log.address,
 		functionName: 'challenges',
 		args: [event.args.number],
 	});
@@ -361,11 +359,10 @@ ponder.on('MintingHubV2:ChallengeAverted', async ({ event, context }) => {
 
 ponder.on('MintingHubV2:ChallengeSucceeded', async ({ event, context }) => {
 	const { client, db } = context;
-	const { MintingHubV2 } = context.contracts;
 
 	const challenges = await client.readContract({
-		abi: MintingHubV2.abi,
-		address: MintingHubV2.address,
+		abi: context.contracts.MintingHubV2.abi,
+		address: event.log.address,
 		functionName: 'challenges',
 		args: [event.args.number],
 	});

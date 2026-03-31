@@ -1,7 +1,7 @@
 import { ponder } from 'ponder:registry';
 import { Address, decodeEventLog, getAddress, zeroAddress } from 'viem';
-import { ADDR } from '../ponder.config';
-import { MintingHubGatewayABI } from '@juicedollar/jusd';
+import { ADDR, MINTING_HUB_ADDRESSES } from '../ponder.config';
+import { MintingHubGatewayV2ABI } from '@juicedollar/jusd';
 import { TEMPORAL_FRAMES, getIdByTemporalFrame, getTimestampByTemporalFrame } from './utils/timestamps';
 import {
 	poolShare,
@@ -174,17 +174,17 @@ ponder.on('Stablecoin:Transfer', async ({ event, context }) => {
 				.onConflictDoUpdate(() => ({ lastActiveTime: event.block.timestamp }));
 		}
 
-		if (event.transaction.to?.toLowerCase() === ADDR.mintingHubGateway.toLowerCase()) {
+		if (MINTING_HUB_ADDRESSES.has(event.transaction.to?.toLowerCase() ?? '')) {
 			const receipt = await context.client.request({
 				method: 'eth_getTransactionReceipt',
 				params: [event.transaction.hash],
 			});
 
 			const positionOpenedEvent = receipt?.logs
-				.filter((log) => log.address.toLowerCase() === ADDR.mintingHubGateway.toLowerCase())
+				.filter((log) => MINTING_HUB_ADDRESSES.has(log.address.toLowerCase()))
 				.map(({ data, topics }) =>
 					decodeEventLog({
-						abi: MintingHubGatewayABI,
+						abi: MintingHubGatewayV2ABI,
 						data: data as `0x${string}`,
 						topics: topics as [`0x${string}`, ...`0x${string}`[]],
 					})
