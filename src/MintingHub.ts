@@ -393,7 +393,7 @@ ponder.on('MintingHub:ChallengeSucceeded', async ({ event, context }) => {
 		bidder: getAddress(event.transaction.from),
 		created: event.block.timestamp,
 		bidType: 'Succeeded',
-		bid: event.args.bid,
+		bid: event.args.bid * 10n ** 18n,
 		price: BigInt(_price),
 		filledSize: event.args.challengeSize,
 		acquiredCollateral: event.args.acquiredCollateral,
