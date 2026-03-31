@@ -112,10 +112,11 @@ export default createConfig({
 			startBlock: V3_START_BLOCK,
 		},
 		SavingsVaultJUSD: {
+			// V2 + V3 (identical event signatures)
 			chain: chain.name,
 			abi: SavingsVaultJUSDABI,
-			address: ADDR.savingsVaultV3 as Address,
-			startBlock: V3_START_BLOCK,
+			address: [ADDR.savingsVaultV2, ADDR.savingsVaultV3].filter(isDeployed),
+			startBlock: config.startMintingHubV2,
 		},
 		Roller: {
 			// V2 + V3 (identical Roll event)
