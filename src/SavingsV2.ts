@@ -17,7 +17,7 @@ import {
 	ecosystem,
 } from '../ponder.schema';
 
-ponder.on('Savings:RateProposed', async ({ event, context }) => {
+ponder.on('SavingsV2:RateProposed', async ({ event, context }) => {
 	const { db } = context;
 	const { who, nextChange, nextRate } = event.args;
 
@@ -32,7 +32,7 @@ ponder.on('Savings:RateProposed', async ({ event, context }) => {
 	});
 });
 
-ponder.on('Savings:RateChanged', async ({ event, context }) => {
+ponder.on('SavingsV2:RateChanged', async ({ event, context }) => {
 	const { db } = context;
 	const { newRate } = event.args;
 
@@ -45,7 +45,7 @@ ponder.on('Savings:RateChanged', async ({ event, context }) => {
 	});
 });
 
-ponder.on('Savings:Saved', async ({ event, context }) => {
+ponder.on('SavingsV2:Saved', async ({ event, context }) => {
 	const { client, db } = context;
 	const { amount } = event.args;
 	const account = getAddress(event.args.account);
@@ -154,7 +154,7 @@ ponder.on('Savings:Saved', async ({ event, context }) => {
 		.onConflictDoUpdate(() => ({ total: totalSaved }));
 });
 
-ponder.on('Savings:InterestCollected', async ({ event, context }) => {
+ponder.on('SavingsV2:InterestCollected', async ({ event, context }) => {
 	const { client, db } = context;
 	const { interest } = event.args;
 	const account = getAddress(event.args.account);
@@ -220,7 +220,7 @@ ponder.on('Savings:InterestCollected', async ({ event, context }) => {
 		}));
 });
 
-ponder.on('Savings:Withdrawn', async ({ event, context }) => {
+ponder.on('SavingsV2:Withdrawn', async ({ event, context }) => {
 	const { client, db } = context;
 	const { amount } = event.args;
 	const account = getAddress(event.args.account);

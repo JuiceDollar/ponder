@@ -13,7 +13,7 @@ import {
 	mintingHubRateChanged,
 } from '../ponder.schema';
 
-ponder.on('MintingHubV2:PositionOpened', async ({ event, context }) => {
+ponder.on('MintingHub:PositionOpened', async ({ event, context }) => {
 	const { client, db } = context;
 
 	const { owner, position, original, collateral } = event.args;
@@ -236,11 +236,11 @@ ponder.on('MintingHubV2:PositionOpened', async ({ event, context }) => {
 		.onConflictDoUpdate(() => ({ lastActiveTime: event.block.timestamp }));
 });
 
-ponder.on('MintingHubV2:ChallengeStarted', async ({ event, context }) => {
+ponder.on('MintingHub:ChallengeStarted', async ({ event, context }) => {
 	const { client, db } = context;
 
 	const challenges = await client.readContract({
-		abi: context.contracts.MintingHubV2.abi,
+		abi: context.contracts.MintingHub.abi,
 		address: event.log.address,
 		functionName: 'challenges',
 		args: [event.args.number],
@@ -288,11 +288,11 @@ ponder.on('MintingHubV2:ChallengeStarted', async ({ event, context }) => {
 		.onConflictDoUpdate(() => ({ lastActiveTime: event.block.timestamp }));
 });
 
-ponder.on('MintingHubV2:ChallengeAverted', async ({ event, context }) => {
+ponder.on('MintingHub:ChallengeAverted', async ({ event, context }) => {
 	const { client, db } = context;
 
 	const challenges = await client.readContract({
-		abi: context.contracts.MintingHubV2.abi,
+		abi: context.contracts.MintingHub.abi,
 		address: event.log.address,
 		functionName: 'challenges',
 		args: [event.args.number],
@@ -359,11 +359,11 @@ ponder.on('MintingHubV2:ChallengeAverted', async ({ event, context }) => {
 		.onConflictDoUpdate(() => ({ lastActiveTime: event.block.timestamp }));
 });
 
-ponder.on('MintingHubV2:ChallengeSucceeded', async ({ event, context }) => {
+ponder.on('MintingHub:ChallengeSucceeded', async ({ event, context }) => {
 	const { client, db } = context;
 
 	const challenges = await client.readContract({
-		abi: context.contracts.MintingHubV2.abi,
+		abi: context.contracts.MintingHub.abi,
 		address: event.log.address,
 		functionName: 'challenges',
 		args: [event.args.number],
@@ -425,7 +425,7 @@ ponder.on('MintingHubV2:ChallengeSucceeded', async ({ event, context }) => {
 		.onConflictDoUpdate(() => ({ lastActiveTime: event.block.timestamp }));
 });
 
-ponder.on('MintingHubV2:ForcedSale', async ({ event, context }) => {
+ponder.on('MintingHub:ForcedSale', async ({ event, context }) => {
 	const { db } = context;
 	await db.insert(forcedSale).values({
 		id: `${event.transaction.hash}-${event.log.logIndex}`,
@@ -438,7 +438,7 @@ ponder.on('MintingHubV2:ForcedSale', async ({ event, context }) => {
 	});
 });
 
-ponder.on('MintingHubV2:PositionDeniedByGovernance', async ({ event, context }) => {
+ponder.on('MintingHub:PositionDeniedByGovernance', async ({ event, context }) => {
 	const { db } = context;
 	await db.insert(positionDeniedByGovernance).values({
 		id: `${event.transaction.hash}-${event.log.logIndex}`,
@@ -451,7 +451,7 @@ ponder.on('MintingHubV2:PositionDeniedByGovernance', async ({ event, context }) 
 	});
 });
 
-ponder.on('MintingHubV2:RateProposed', async ({ event, context }) => {
+ponder.on('MintingHub:RateProposed', async ({ event, context }) => {
 	const { db } = context;
 	const { who, nextChange, nextRate } = event.args;
 
@@ -466,7 +466,7 @@ ponder.on('MintingHubV2:RateProposed', async ({ event, context }) => {
 	});
 });
 
-ponder.on('MintingHubV2:RateChanged', async ({ event, context }) => {
+ponder.on('MintingHub:RateChanged', async ({ event, context }) => {
 	const { db } = context;
 	const { newRate } = event.args;
 

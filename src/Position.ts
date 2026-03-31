@@ -17,7 +17,7 @@ async function getSavingsAddress(
 	return hubAddress.toLowerCase() === ADDR.mintingHub?.toLowerCase() ? ADDR.savings : ADDR.savingsGateway;
 }
 
-ponder.on('PositionV2:MintingUpdate', async ({ event, context }) => {
+ponder.on('Position:MintingUpdate', async ({ event, context }) => {
 	const { client, db } = context;
 
 	const { collateral, price } = event.args;
@@ -174,7 +174,7 @@ ponder.on('PositionV2:MintingUpdate', async ({ event, context }) => {
 		.onConflictDoUpdate(() => ({ lastActiveTime: event.block.timestamp }));
 });
 
-ponder.on('PositionV2:PositionDenied', async ({ event, context }) => {
+ponder.on('Position:PositionDenied', async ({ event, context }) => {
 	const { client, db } = context;
 	const position = await db.find(positionV2, { id: event.log.address.toLowerCase() });
 
@@ -197,7 +197,7 @@ ponder.on('PositionV2:PositionDenied', async ({ event, context }) => {
 		.onConflictDoUpdate(() => ({ lastActiveTime: event.block.timestamp }));
 });
 
-ponder.on('PositionV2:OwnershipTransferred', async ({ event, context }) => {
+ponder.on('Position:OwnershipTransferred', async ({ event, context }) => {
 	const { db } = context;
 	const position = await db.find(positionV2, { id: event.log.address.toLowerCase() });
 	if (position) {

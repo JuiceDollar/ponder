@@ -80,14 +80,14 @@ export default createConfig({
 			address: ADDR.equity as Address,
 			startBlock: config.startStablecoin,
 		},
-		MintingHubV2: {
+		MintingHub: {
 			// V2 + V3 (V3 ABI is superset — includes RateProposed/RateChanged from Leadrate)
 			chain: chain.name,
 			abi: MintingHubV3ABI,
 			address: [ADDR.mintingHubGateway, ADDR.mintingHub].filter(isDeployed),
 			startBlock: config.startMintingHubV2,
 		},
-		PositionV2: {
+		Position: {
 			// Positions from V2 + V3 MintingHub factories
 			chain: chain.name,
 			abi: PositionV2ABI,
@@ -98,8 +98,7 @@ export default createConfig({
 			}),
 			startBlock: config.startMintingHubV2,
 		},
-		Savings: {
-			// V2
+		SavingsV2: {
 			chain: chain.name,
 			abi: SavingsGatewayV2ABI,
 			address: ADDR.savingsGateway as Address,
