@@ -1,6 +1,6 @@
 import { createConfig, factory, rateLimit } from 'ponder';
 import { testnet, mainnet } from './chains';
-import { Address } from 'viem';
+import { Address, zeroAddress } from 'viem';
 import { AbiEvent } from 'abitype';
 import { citreaTransport } from './citrea-transport-fix';
 
@@ -8,11 +8,13 @@ import {
 	ADDRESS,
 	JuiceDollarABI,
 	EquityABI,
-	MintingHubV2ABI,
-	PositionRollerABI,
+	MintingHubV3ABI,
+	PositionRollerV2ABI,
 	PositionV2ABI,
-	SavingsABI,
-	FrontendGatewayABI,
+	SavingsGatewayV2ABI,
+	SavingsV3ABI,
+	SavingsVaultJUSDABI,
+	FrontendGatewayV2ABI,
 	StablecoinBridgeABI,
 } from '@juicedollar/jusd';
 
@@ -44,8 +46,18 @@ export const CONFIG = {
 
 export const config = CONFIG[Id]!;
 
-const openPositionEventV2 = MintingHubV2ABI.find((a) => a.type === 'event' && a.name === 'PositionOpened') as AbiEvent;
-if (!openPositionEventV2) throw new Error('openPositionEventV2 not found.');
+const openPositionEvent = MintingHubV3ABI.find((a) => a.type === 'event' && a.name === 'PositionOpened') as AbiEvent;
+if (!openPositionEvent) throw new Error('openPositionEvent not found.');
+
+// V3 contracts deployed at this block on mainnet
+const V3_START_BLOCK = 5081799;
+
+const isDeployed = (addr: string | undefined): addr is Address => !!addr && addr !== zeroAddress;
+
+// MintingHub addresses (V2 + V3) for use in handlers
+export const MINTING_HUB_ADDRESSES = new Set(
+	[ADDR.mintingHubGateway, ADDR.mintingHub].filter(isDeployed).map((a) => a.toLowerCase())
+);
 
 export default createConfig({
 	chains: {
@@ -68,41 +80,53 @@ export default createConfig({
 			address: ADDR.equity as Address,
 			startBlock: config.startStablecoin,
 		},
-		MintingHubV2: {
-			// V2
+		MintingHub: {
+			// V2 + V3 (V3 ABI is superset — includes RateProposed/RateChanged from Leadrate)
 			chain: chain.name,
-			abi: MintingHubV2ABI,
-			address: ADDR.mintingHubGateway as Address,
+			abi: MintingHubV3ABI,
+			address: [ADDR.mintingHubGateway, ADDR.mintingHub].filter(isDeployed),
 			startBlock: config.startMintingHubV2,
 		},
-		PositionV2: {
-			// V2
+		Position: {
+			// Positions from V2 + V3 MintingHub factories
 			chain: chain.name,
 			abi: PositionV2ABI,
 			address: factory({
-				address: ADDR.mintingHubGateway as Address,
-				event: openPositionEventV2,
+				address: [ADDR.mintingHubGateway, ADDR.mintingHub].filter(isDeployed),
+				event: openPositionEvent,
 				parameter: 'position',
 			}),
 			startBlock: config.startMintingHubV2,
 		},
-		Savings: {
-			// V2
+		SavingsV2: {
 			chain: chain.name,
-			abi: SavingsABI,
+			abi: SavingsGatewayV2ABI,
 			address: ADDR.savingsGateway as Address,
 			startBlock: config.startMintingHubV2,
 		},
-		Roller: {
-			// V2
+		SavingsV3: {
 			chain: chain.name,
-			abi: PositionRollerABI,
-			address: ADDR.roller as Address,
+			abi: SavingsV3ABI,
+			address: ADDR.savings as Address,
+			startBlock: V3_START_BLOCK,
+		},
+		SavingsVaultJUSD: {
+			// V2 + V3 (identical event signatures)
+			chain: chain.name,
+			abi: SavingsVaultJUSDABI,
+			address: [ADDR.savingsVaultV2, ADDR.savingsVaultV3].filter(isDeployed),
+			startBlock: config.startMintingHubV2,
+		},
+		Roller: {
+			// V2 + V3 (identical Roll event)
+			chain: chain.name,
+			abi: PositionRollerV2ABI,
+			address: [ADDR.rollerV2, ADDR.rollerV3].filter(isDeployed),
 			startBlock: config.startMintingHubV2,
 		},
 		FrontendGateway: {
 			chain: chain.name,
-			abi: FrontendGatewayABI,
+			abi: FrontendGatewayV2ABI,
 			address: ADDR.frontendGateway as Address,
 			startBlock: config.startMintingHubV2,
 		},
@@ -114,7 +138,7 @@ export default createConfig({
 				ADDR.bridgeUSDC,
 				ADDR.bridgeUSDT,
 				ADDR.bridgeCTUSD,
-			].filter((a): a is Address => !!a),
+			].filter(isDeployed),
 			startBlock: config.startStablecoin,
 		},
 	},
