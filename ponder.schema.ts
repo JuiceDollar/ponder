@@ -248,6 +248,7 @@ export const mintingUpdateV2 = onchainTable('minting_update_v2', (t) => ({
 	feeTimeframe: t.integer().notNull(),
 	feePPM: t.integer().notNull(),
 	feePaid: t.bigint().notNull(),
+	cooldown: t.bigint().notNull(),
 }));
 
 export const challengeV2 = onchainTable('challenge_v2', (t) => ({
