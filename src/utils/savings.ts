@@ -15,12 +15,14 @@ export async function readCombinedAmountSaved(client: Client, account: `0x${stri
 			args: [account],
 		}),
 		ADDR.savings && ADDR.savings !== zeroAddress
-			? client.readContract({
-					abi: SavingsV3ABI,
-					address: ADDR.savings,
-					functionName: 'savings',
-					args: [account],
-				})
+			? client
+					.readContract({
+						abi: SavingsV3ABI,
+						address: ADDR.savings,
+						functionName: 'savings',
+						args: [account],
+					})
+					.catch(() => [0n] as const)
 			: Promise.resolve([0n] as const),
 	]);
 	return v2Result[0] + v3Result[0];
