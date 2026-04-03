@@ -83,7 +83,6 @@ export const savingsRateProposed = onchainTable('savings_rate_proposed', (t) => 
 	proposer: t.text().notNull(),
 	nextRate: t.integer().notNull(),
 	nextChange: t.integer().notNull(),
-	source: t.text().notNull(),
 }));
 
 export const savingsRateChanged = onchainTable('savings_rate_changed', (t) => ({
@@ -92,7 +91,6 @@ export const savingsRateChanged = onchainTable('savings_rate_changed', (t) => ({
 	blockheight: t.bigint().notNull(),
 	txHash: t.text().notNull(),
 	approvedRate: t.integer().notNull(),
-	source: t.text().notNull(),
 }));
 
 export const savingsSaved = onchainTable('savings_saved', (t) => ({

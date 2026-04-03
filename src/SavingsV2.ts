@@ -2,7 +2,6 @@ import { ponder } from 'ponder:registry';
 import { JuiceDollarABI as StablecoinABI, SavingsGatewayV2ABI } from '@juicedollar/jusd';
 import { ADDR } from '../ponder.config';
 import { decodeFunctionData, getAddress, zeroAddress } from 'viem';
-import { readCombinedAmountSaved } from './utils/savings';
 import {
 	savingsRateProposed,
 	savingsRateChanged,
@@ -30,7 +29,6 @@ ponder.on('SavingsV2:RateProposed', async ({ event, context }) => {
 		proposer: getAddress(who),
 		nextRate: nextRate,
 		nextChange: nextChange,
-		source: 'v2',
 	});
 });
 
@@ -44,7 +42,6 @@ ponder.on('SavingsV2:RateChanged', async ({ event, context }) => {
 		blockheight: event.block.number,
 		txHash: event.transaction.hash,
 		approvedRate: newRate,
-		source: 'v2',
 	});
 });
 
@@ -108,7 +105,12 @@ ponder.on('SavingsV2:Saved', async ({ event, context }) => {
 		.values({ id: 'Savings:TotalSaved', value: '', amount: amount })
 		.onConflictDoUpdate((row) => ({ amount: row.amount + amount }));
 
-	const amountSaved = await readCombinedAmountSaved(client, account);
+	const [amountSaved] = await client.readContract({
+		abi: SavingsGatewayV2ABI,
+		address: ADDR.savingsGateway,
+		functionName: 'savings',
+		args: [account],
+	});
 
 	const existingUser = await db.find(savingsUserLeaderboard, { id: event.args.account });
 
@@ -202,7 +204,12 @@ ponder.on('SavingsV2:InterestCollected', async ({ event, context }) => {
 		.values({ id: 'Savings:TotalInterestCollected', value: '', amount: interest })
 		.onConflictDoUpdate((row) => ({ amount: row.amount + interest }));
 
-	const amountSaved = await readCombinedAmountSaved(client, account);
+	const [amountSaved] = await client.readContract({
+		abi: SavingsGatewayV2ABI,
+		address: ADDR.savingsGateway,
+		functionName: 'savings',
+		args: [account],
+	});
 
 	await db
 		.insert(savingsUserLeaderboard)
@@ -263,7 +270,12 @@ ponder.on('SavingsV2:Withdrawn', async ({ event, context }) => {
 		.values({ id: 'Savings:TotalWithdrawn', value: '', amount: amount })
 		.onConflictDoUpdate((row) => ({ amount: row.amount + amount }));
 
-	const amountSaved = await readCombinedAmountSaved(client, account);
+	const [amountSaved] = await client.readContract({
+		abi: SavingsGatewayV2ABI,
+		address: ADDR.savingsGateway,
+		functionName: 'savings',
+		args: [account],
+	});
 
 	await db
 		.insert(savingsUserLeaderboard)
