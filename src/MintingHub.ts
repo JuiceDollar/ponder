@@ -223,6 +223,7 @@ ponder.on('MintingHub:PositionOpened', async ({ event, context }) => {
 		principal,
 		virtualPrice,
 		actualVirtualPrice,
+		mintingHubAddress: getAddress(event.log.address)
 	});
 
 	await db
@@ -273,6 +274,7 @@ ponder.on('MintingHub:ChallengeStarted', async ({ event, context }) => {
 		filledSize: 0n,
 		acquiredCollateral: 0n,
 		status: 'Active',
+		mintingHubAddress: getAddress(event.log.address)
 	});
 
 	await db.update(positionV2, { id: event.args.position.toLowerCase() }).set({ isChallenged: true });
@@ -333,6 +335,7 @@ ponder.on('MintingHub:ChallengeAverted', async ({ event, context }) => {
 		filledSize: event.args.size,
 		acquiredCollateral: 0n,
 		challengeSize: challenge.size,
+		mintingHubAddress: getAddress(event.log.address)
 	});
 
 	await db
@@ -398,6 +401,7 @@ ponder.on('MintingHub:ChallengeSucceeded', async ({ event, context }) => {
 		filledSize: event.args.challengeSize,
 		acquiredCollateral: event.args.acquiredCollateral,
 		challengeSize: challenge.size,
+		mintingHubAddress: getAddress(event.log.address)
 	});
 
 	await db

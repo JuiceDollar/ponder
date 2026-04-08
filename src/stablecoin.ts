@@ -206,6 +206,7 @@ ponder.on('Stablecoin:Transfer', async ({ event, context }) => {
 					timestamp: event.block.timestamp,
 					blockheight: event.block.number,
 					txHash: event.transaction.hash,
+					mintingHubAddress: getAddress(event.transaction.to as `0x${string}`),
 				})
 				.onConflictDoUpdate((row) => ({
 					to: event.args.to.toLowerCase() !== ADDR.equity.toLowerCase() ? event.args.to : row.to,
@@ -225,6 +226,7 @@ ponder.on('Stablecoin:Transfer', async ({ event, context }) => {
 					timestamp: event.block.timestamp,
 					blockheight: event.block.number,
 					txHash: event.transaction.hash,
+					mintingHubAddress: openPosition.mintingHubAddress,
 				})
 				.onConflictDoUpdate((row) => ({
 					to: event.args.to.toLowerCase() !== ADDR.equity.toLowerCase() ? event.args.to : row.to,

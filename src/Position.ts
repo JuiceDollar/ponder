@@ -133,6 +133,7 @@ ponder.on('Position:MintingUpdate', async ({ event, context }) => {
 			feePPM: parseInt(getFeePPM().toString()),
 			feePaid: 0n,
 			cooldown: BigInt(cooldown),
+			mintingHubAddress: position.mintingHubAddress
 		});
 	} else {
 		const prev = await db.find(mintingUpdateV2, { id: idMinting(mintingCounter - 1n) });
@@ -167,6 +168,7 @@ ponder.on('Position:MintingUpdate', async ({ event, context }) => {
 			feePPM: parseInt(getFeePPM().toString()),
 			feePaid: 0n,
 			cooldown: BigInt(cooldown),
+			mintingHubAddress: position.mintingHubAddress
 		});
 	}
 
