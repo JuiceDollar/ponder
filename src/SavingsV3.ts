@@ -118,7 +118,7 @@ ponder.on('SavingsV3:Saved', async ({ event, context }) => {
 		.values({ id: 'Savings:TotalSaved', value: '', amount: amount })
 		.onConflictDoUpdate((row) => ({ amount: row.amount + amount }));
 
-	const amountSaved = await readCombinedAmountSaved(client, account);
+	const amountSaved = await readCombinedAmountSaved(client, account, event.block.number);
 
 	const existingUser = await db.find(savingsUserLeaderboard, { id: event.args.account });
 
@@ -197,7 +197,7 @@ ponder.on('SavingsV3:InterestCollected', async ({ event, context }) => {
 		.values({ id: 'Savings:TotalInterestCollected', value: '', amount: interest })
 		.onConflictDoUpdate((row) => ({ amount: row.amount + interest }));
 
-	const amountSaved = await readCombinedAmountSaved(client, account);
+	const amountSaved = await readCombinedAmountSaved(client, account, event.block.number);
 
 	await db
 		.insert(savingsUserLeaderboard)
@@ -258,7 +258,7 @@ ponder.on('SavingsV3:Withdrawn', async ({ event, context }) => {
 		.values({ id: 'Savings:TotalWithdrawn', value: '', amount: amount })
 		.onConflictDoUpdate((row) => ({ amount: row.amount + amount }));
 
-	const amountSaved = await readCombinedAmountSaved(client, account);
+	const amountSaved = await readCombinedAmountSaved(client, account, event.block.number);
 
 	await db
 		.insert(savingsUserLeaderboard)
