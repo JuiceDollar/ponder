@@ -224,6 +224,7 @@ export const positionV2 = onchainTable('position_v2', (t) => ({
 	principal: t.bigint().notNull(),
 	virtualPrice: t.bigint().notNull(),
 	actualVirtualPrice: t.bigint().notNull(),
+	mintingHubAddress: t.text().notNull(),
 }));
 
 export const mintingUpdateV2 = onchainTable('minting_update_v2', (t) => ({
@@ -251,6 +252,7 @@ export const mintingUpdateV2 = onchainTable('minting_update_v2', (t) => ({
 	feePPM: t.integer().notNull(),
 	feePaid: t.bigint().notNull(),
 	cooldown: t.bigint().notNull(),
+	mintingHubAddress: t.text().notNull(),
 }));
 
 export const challengeV2 = onchainTable('challenge_v2', (t) => ({
@@ -268,6 +270,7 @@ export const challengeV2 = onchainTable('challenge_v2', (t) => ({
 	filledSize: t.bigint().notNull(),
 	acquiredCollateral: t.bigint().notNull(),
 	status: t.text().notNull(),
+	mintingHubAddress: t.text().notNull(),
 }));
 
 export const challengeBidV2 = onchainTable('challenge_bid_v2', (t) => ({
@@ -284,6 +287,7 @@ export const challengeBidV2 = onchainTable('challenge_bid_v2', (t) => ({
 	filledSize: t.bigint().notNull(),
 	acquiredCollateral: t.bigint().notNull(),
 	challengeSize: t.bigint().notNull(),
+	mintingHubAddress: t.text().notNull(),
 }));
 
 export const positionMint = onchainTable('position_mint', (t) => ({
@@ -294,6 +298,7 @@ export const positionMint = onchainTable('position_mint', (t) => ({
 	blockheight: t.bigint().notNull(),
 	timestamp: t.bigint().notNull(),
 	txHash: t.text().notNull(),
+	mintingHubAddress: t.text().notNull(),
 }));
 
 export const frontendCodeRegistered = onchainTable('frontend_code_registered', (t) => ({
