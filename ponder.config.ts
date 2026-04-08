@@ -50,7 +50,7 @@ const openPositionEvent = MintingHubV3ABI.find((a) => a.type === 'event' && a.na
 if (!openPositionEvent) throw new Error('openPositionEvent not found.');
 
 // V3 contracts deployed at this block on mainnet
-const V3_START_BLOCK = 5081799;
+export const V3_START_BLOCK = 5081799;
 
 const isDeployed = (addr: string | undefined): addr is Address => !!addr && addr !== zeroAddress;
 
