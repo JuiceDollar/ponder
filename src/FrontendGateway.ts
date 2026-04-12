@@ -14,16 +14,17 @@ import {
 	rateChangesExecuted,
 } from '../ponder.schema';
 import { getAddress } from 'viem';
+import { getTxHash } from './utils/event';
 
 ponder.on('FrontendGateway:FrontendCodeRegistered', async ({ event, context }) => {
 	const { db } = context;
 	const { owner, frontendCode } = event.args;
 
 	await db.insert(frontendCodeRegistered).values({
-		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		id: `${getTxHash(event)}-${event.log.logIndex}`,
 		owner: getAddress(owner),
 		frontendCode,
-		txHash: event.transaction.hash,
+		txHash: getTxHash(event),
 		created: event.block.timestamp,
 	});
 
@@ -38,11 +39,11 @@ ponder.on('FrontendGateway:FrontendCodeTransferred', async ({ event, context }) 
 	const { from, to, frontendCode } = event.args;
 
 	await db.insert(frontendCodeRegistered).values({
-		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		id: `${getTxHash(event)}-${event.log.logIndex}`,
 		created: event.block.timestamp,
 		owner: getAddress(to),
 		frontendCode,
-		txHash: event.transaction.hash,
+		txHash: getTxHash(event),
 	});
 
 	await db
@@ -61,13 +62,13 @@ ponder.on('FrontendGateway:InvestRewardAdded', async ({ event, context }) => {
 	const { user, amount, reward, frontendCode } = event.args;
 
 	await db.insert(investRewardAdded).values({
-		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		id: `${getTxHash(event)}-${event.log.logIndex}`,
 		user: getAddress(user),
 		frontendCode,
 		amount,
 		reward,
 		timestamp: event.block.timestamp,
-		txHash: event.transaction.hash,
+		txHash: getTxHash(event),
 	});
 
 	await db
@@ -103,12 +104,12 @@ ponder.on('FrontendGateway:InvestRewardAdded', async ({ event, context }) => {
 		.onConflictDoUpdate((row) => ({ volume: row.volume + reward, timestamp: event.block.timestamp }));
 
 	await db.insert(frontendBonusHistoryMapping).values({
-		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		id: `${getTxHash(event)}-${event.log.logIndex}`,
 		frontendCode,
 		payout: reward,
 		source: 'InvestRewardAdded',
 		timestamp: event.block.timestamp,
-		txHash: event.transaction.hash,
+		txHash: getTxHash(event),
 	});
 });
 
@@ -117,13 +118,13 @@ ponder.on('FrontendGateway:RedeemRewardAdded', async ({ event, context }) => {
 	const { user, amount, reward, frontendCode } = event.args;
 
 	await db.insert(redeemRewardAdded).values({
-		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		id: `${getTxHash(event)}-${event.log.logIndex}`,
 		user: getAddress(user),
 		amount,
 		reward,
 		frontendCode,
 		timestamp: event.block.timestamp,
-		txHash: event.transaction.hash,
+		txHash: getTxHash(event),
 	});
 
 	await db
@@ -159,12 +160,12 @@ ponder.on('FrontendGateway:RedeemRewardAdded', async ({ event, context }) => {
 		.onConflictDoUpdate((row) => ({ volume: row.volume + reward, timestamp: event.block.timestamp }));
 
 	await db.insert(frontendBonusHistoryMapping).values({
-		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		id: `${getTxHash(event)}-${event.log.logIndex}`,
 		frontendCode,
 		payout: reward,
 		source: 'RedeemRewardAdded',
 		timestamp: event.block.timestamp,
-		txHash: event.transaction.hash,
+		txHash: getTxHash(event),
 	});
 });
 
@@ -173,13 +174,13 @@ ponder.on('FrontendGateway:SavingsRewardAdded', async ({ event, context }) => {
 	const { saver, interest, reward, frontendCode } = event.args;
 
 	await db.insert(savingsRewardAdded).values({
-		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		id: `${getTxHash(event)}-${event.log.logIndex}`,
 		user: getAddress(saver),
 		interest,
 		reward,
 		frontendCode,
 		timestamp: event.block.timestamp,
-		txHash: event.transaction.hash,
+		txHash: getTxHash(event),
 	});
 
 	await db
@@ -215,12 +216,12 @@ ponder.on('FrontendGateway:SavingsRewardAdded', async ({ event, context }) => {
 		.onConflictDoUpdate((row) => ({ volume: row.volume + reward, timestamp: event.block.timestamp }));
 
 	await db.insert(frontendBonusHistoryMapping).values({
-		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		id: `${getTxHash(event)}-${event.log.logIndex}`,
 		frontendCode,
 		payout: reward,
 		source: 'SavingsRewardAdded',
 		timestamp: event.block.timestamp,
-		txHash: event.transaction.hash,
+		txHash: getTxHash(event),
 	});
 });
 
@@ -238,14 +239,14 @@ ponder.on('FrontendGateway:PositionRewardAdded', async ({ event, context }) => {
 	const ownerAddress = getAddress(owner);
 
 	await db.insert(positionRewardAdded).values({
-		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		id: `${getTxHash(event)}-${event.log.logIndex}`,
 		user: ownerAddress,
 		position: getAddress(position),
 		amount,
 		reward,
 		frontendCode,
 		timestamp: event.block.timestamp,
-		txHash: event.transaction.hash,
+		txHash: getTxHash(event),
 	});
 
 	await db
@@ -281,12 +282,12 @@ ponder.on('FrontendGateway:PositionRewardAdded', async ({ event, context }) => {
 		.onConflictDoUpdate((row) => ({ volume: row.volume + reward, timestamp: event.block.timestamp }));
 
 	await db.insert(frontendBonusHistoryMapping).values({
-		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		id: `${getTxHash(event)}-${event.log.logIndex}`,
 		frontendCode,
 		payout: reward,
 		source: 'PositionRewardAdded',
 		timestamp: event.block.timestamp,
-		txHash: event.transaction.hash,
+		txHash: getTxHash(event),
 	});
 });
 
@@ -294,7 +295,7 @@ ponder.on('FrontendGateway:RateChangesProposed', async ({ event, context }) => {
 	const { db } = context;
 
 	await db.insert(rateChangesProposed).values({
-		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		id: `${getTxHash(event)}-${event.log.logIndex}`,
 		who: getAddress(event.args.who),
 		nextFeeRate: event.args.nextFeeRate,
 		nextSavingsFeeRate: event.args.nextSavingsFeeRate,
@@ -302,7 +303,7 @@ ponder.on('FrontendGateway:RateChangesProposed', async ({ event, context }) => {
 		nextChange: event.args.nextChange,
 		blockheight: event.block.number,
 		timestamp: event.block.timestamp,
-		txHash: event.transaction.hash,
+		txHash: getTxHash(event),
 	});
 });
 
@@ -310,13 +311,13 @@ ponder.on('FrontendGateway:RateChangesExecuted', async ({ event, context }) => {
 	const { db } = context;
 
 	await db.insert(rateChangesExecuted).values({
-		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		id: `${getTxHash(event)}-${event.log.logIndex}`,
 		who: getAddress(event.args.who),
 		nextFeeRate: event.args.nextFeeRate,
 		nextSavingsFeeRate: event.args.nextSavingsFeeRate,
 		nextMintingFeeRate: event.args.nextMintingFeeRate,
 		blockheight: event.block.number,
 		timestamp: event.block.timestamp,
-		txHash: event.transaction.hash,
+		txHash: getTxHash(event),
 	});
 });

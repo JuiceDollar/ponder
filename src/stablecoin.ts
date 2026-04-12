@@ -3,6 +3,7 @@ import { Address, decodeEventLog, getAddress, zeroAddress } from 'viem';
 import { ADDR, MINTING_HUB_ADDRESSES } from '../ponder.config';
 import { MintingHubV3ABI } from '@juicedollar/jusd';
 import { TEMPORAL_FRAMES, getIdByTemporalFrame, getTimestampByTemporalFrame } from './utils/timestamps';
+import { getTxHash } from './utils/event';
 import {
 	poolShare,
 	activeUser,
@@ -70,7 +71,7 @@ ponder.on('Stablecoin:MinterApplied', async ({ event, context }) => {
 		.insert(minter)
 		.values({
 			id: minterAddr,
-			txHash: event.transaction.hash,
+			txHash: getTxHash(event),
 			minter: minterAddr,
 			applicationPeriod: event.args.applicationPeriod,
 			applicationFee: event.args.applicationFee,
@@ -83,7 +84,7 @@ ponder.on('Stablecoin:MinterApplied', async ({ event, context }) => {
 			vetor: null,
 		})
 		.onConflictDoUpdate(() => ({
-			txHash: event.transaction.hash,
+			txHash: getTxHash(event),
 			minter: minterAddr,
 			applicationPeriod: event.args.applicationPeriod,
 			applicationFee: event.args.applicationFee,
@@ -113,7 +114,7 @@ ponder.on('Stablecoin:MinterDenied', async ({ event, context }) => {
 	await db.update(minter, { id: getAddress(event.args.minter) }).set({
 		denyMessage: event.args.message,
 		denyDate: event.block.timestamp,
-		denyTxHash: event.transaction.hash,
+		denyTxHash: getTxHash(event),
 		vetor: getAddress(event.transaction.from),
 	});
 
@@ -127,13 +128,13 @@ ponder.on('Stablecoin:Transfer', async ({ event, context }) => {
 	const { db } = context;
 
 	await db.insert(stablecoinTransferHistory).values({
-		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		id: `${getTxHash(event)}-${event.log.logIndex}`,
 		from: getAddress(event.args.from),
 		to: getAddress(event.args.to),
 		amount: event.args.value,
 		timestamp: event.block.timestamp,
 		blockheight: event.block.number,
-		txHash: event.transaction.hash,
+		txHash: getTxHash(event),
 		transactionTo: event.transaction.to ? getAddress(event.transaction.to) : null,
 	});
 
@@ -144,12 +145,12 @@ ponder.on('Stablecoin:Transfer', async ({ event, context }) => {
 
 	if (event.args.from === zeroAddress) {
 		await db.insert(mint).values({
-			id: `${event.transaction.hash}-${event.log.logIndex}`,
+			id: `${getTxHash(event)}-${event.log.logIndex}`,
 			to: getAddress(event.args.to),
 			value: event.args.value,
 			blockheight: event.block.number,
 			timestamp: event.block.timestamp,
-			txHash: event.transaction.hash,
+			txHash: getTxHash(event),
 		});
 
 		await db
@@ -177,7 +178,7 @@ ponder.on('Stablecoin:Transfer', async ({ event, context }) => {
 		if (MINTING_HUB_ADDRESSES.has(event.transaction.to?.toLowerCase() ?? '')) {
 			const receipt = await context.client.request({
 				method: 'eth_getTransactionReceipt',
-				params: [event.transaction.hash],
+				params: [getTxHash(event)],
 			});
 
 			const positionOpenedEvent = receipt?.logs
@@ -199,13 +200,13 @@ ponder.on('Stablecoin:Transfer', async ({ event, context }) => {
 			await db
 				.insert(positionMint)
 				.values({
-					id: event.transaction.hash.toLowerCase(),
+					id: getTxHash(event).toLowerCase(),
 					to: getAddress(event.args.to),
 					positionAddress: positionOpenedAddress,
 					value: event.args.value,
 					timestamp: event.block.timestamp,
 					blockheight: event.block.number,
-					txHash: event.transaction.hash,
+					txHash: getTxHash(event),
 					mintingHubAddress: getAddress(event.transaction.to as `0x${string}`),
 				})
 				.onConflictDoUpdate((row) => ({
@@ -219,13 +220,13 @@ ponder.on('Stablecoin:Transfer', async ({ event, context }) => {
 			await db
 				.insert(positionMint)
 				.values({
-					id: event.transaction.hash.toLowerCase(),
+					id: getTxHash(event).toLowerCase(),
 					to: getAddress(event.args.to),
 					positionAddress: openPosition.id,
 					value: event.args.value,
 					timestamp: event.block.timestamp,
 					blockheight: event.block.number,
-					txHash: event.transaction.hash,
+					txHash: getTxHash(event),
 					mintingHubAddress: openPosition.mintingHubAddress,
 				})
 				.onConflictDoUpdate((row) => ({
@@ -237,12 +238,12 @@ ponder.on('Stablecoin:Transfer', async ({ event, context }) => {
 
 	if (event.args.to === zeroAddress) {
 		await db.insert(burn).values({
-			id: `${event.transaction.hash}-${event.log.logIndex}`,
+			id: `${getTxHash(event)}-${event.log.logIndex}`,
 			from: getAddress(event.args.from),
 			value: event.args.value,
 			blockheight: event.block.number,
 			timestamp: event.block.timestamp,
-			txHash: event.transaction.hash,
+			txHash: getTxHash(event),
 		});
 
 		await db
@@ -277,7 +278,7 @@ ponder.on('Stablecoin:Transfer', async ({ event, context }) => {
 
 	const bridgeData = {
 		swapper: getAddress(event.transaction.from),
-		txHash: event.transaction.hash,
+		txHash: getTxHash(event),
 		amount: event.args.value,
 		isMint: event.args.from === zeroAddress,
 		timestamp: event.block.timestamp,
@@ -286,7 +287,7 @@ ponder.on('Stablecoin:Transfer', async ({ event, context }) => {
 	const stablecoinAddress = bridgeToStablecoin[event.transaction.to?.toLowerCase() ?? ''];
 	if (stablecoinAddress) {
 		await db.insert(bridgeTx).values({
-			id: `${event.transaction.hash}-${event.log.logIndex}`,
+			id: `${getTxHash(event)}-${event.log.logIndex}`,
 			...bridgeData,
 			stablecoinAddress,
 		});
@@ -318,7 +319,7 @@ ponder.on('Stablecoin:Transfer', async ({ event, context }) => {
 	if (externalInteraction && isMintingOrBurning && !isKnownPosition) {
 		const receipt = await context.client.request({
 			method: 'eth_getTransactionReceipt',
-			params: [event.transaction.hash],
+			params: [getTxHash(event)],
 		});
 
 		const logIndex = event.log.logIndex;
@@ -333,7 +334,7 @@ ponder.on('Stablecoin:Transfer', async ({ event, context }) => {
 
 		if (externalStablecoinAddress) {
 			await db.insert(bridgeTx).values({
-				id: `${event.transaction.hash}-${event.log.logIndex}`,
+				id: `${getTxHash(event)}-${event.log.logIndex}`,
 				...bridgeData,
 				stablecoinAddress: externalStablecoinAddress,
 			});

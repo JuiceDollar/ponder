@@ -1,5 +1,6 @@
 import { ponder } from 'ponder:registry';
 import { getAddress } from 'viem';
+import { getTxHash } from './utils/event';
 import { rollerRolled } from '../ponder.schema';
 
 ponder.on('Roller:Roll', async ({ event, context }) => {
@@ -7,7 +8,7 @@ ponder.on('Roller:Roll', async ({ event, context }) => {
 	const { source, collWithdraw, repay, target, collDeposit, mint } = event.args;
 
 	await db.insert(rollerRolled).values({
-		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		id: `${getTxHash(event)}-${event.log.logIndex}`,
 		created: event.block.timestamp,
 		blockheight: event.block.number,
 		owner: getAddress(event.transaction.from),

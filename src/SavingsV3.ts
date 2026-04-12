@@ -3,6 +3,7 @@ import { JuiceDollarABI as StablecoinABI, SavingsV3ABI } from '@juicedollar/jusd
 import { ADDR } from '../ponder.config';
 import { getAddress } from 'viem';
 import { readCombinedAmountSaved } from './utils/savings';
+import { getTxHash } from './utils/event';
 import {
 	savingsRateProposed,
 	savingsRateChanged,
@@ -42,10 +43,10 @@ ponder.on('SavingsV3:RateProposed', async ({ event, context }) => {
 	const { who, nextChange, nextRate } = event.args;
 
 	await db.insert(savingsRateProposed).values({
-		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		id: `${getTxHash(event)}-${event.log.logIndex}`,
 		created: event.block.timestamp,
 		blockheight: event.block.number,
-		txHash: event.transaction.hash,
+		txHash: getTxHash(event),
 		proposer: getAddress(who),
 		nextRate: nextRate,
 		nextChange: nextChange,
@@ -58,10 +59,10 @@ ponder.on('SavingsV3:RateChanged', async ({ event, context }) => {
 	const { newRate } = event.args;
 
 	await db.insert(savingsRateChanged).values({
-		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		id: `${getTxHash(event)}-${event.log.logIndex}`,
 		created: event.block.timestamp,
 		blockheight: event.block.number,
-		txHash: event.transaction.hash,
+		txHash: getTxHash(event),
 		approvedRate: newRate,
 		source: 'v3',
 	});
@@ -101,11 +102,11 @@ ponder.on('SavingsV3:Saved', async ({ event, context }) => {
 		: 0n;
 
 	await db.insert(savingsSaved).values({
-		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		id: `${getTxHash(event)}-${event.log.logIndex}`,
 		created: event.block.timestamp,
 		blockheight: event.block.number,
 		account: event.args.account,
-		txHash: event.transaction.hash,
+		txHash: getTxHash(event),
 		amount,
 		rate: ratePPM,
 		total: latestSaved ? latestSaved.amount : amount,
@@ -180,10 +181,10 @@ ponder.on('SavingsV3:InterestCollected', async ({ event, context }) => {
 		: 0n;
 
 	await db.insert(savingsInterest).values({
-		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		id: `${getTxHash(event)}-${event.log.logIndex}`,
 		created: event.block.timestamp,
 		blockheight: event.block.number,
-		txHash: event.transaction.hash,
+		txHash: getTxHash(event),
 		account: event.args.account,
 		amount: interest,
 		rate: ratePPM,
@@ -242,10 +243,10 @@ ponder.on('SavingsV3:Withdrawn', async ({ event, context }) => {
 		: 0n;
 
 	await db.insert(savingsWithdrawn).values({
-		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		id: `${getTxHash(event)}-${event.log.logIndex}`,
 		created: event.block.timestamp,
 		blockheight: event.block.number,
-		txHash: event.transaction.hash,
+		txHash: getTxHash(event),
 		account: event.args.account,
 		amount,
 		rate: ratePPM,

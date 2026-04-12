@@ -1,6 +1,7 @@
 import { ponder } from 'ponder:registry';
 import { getAddress } from 'viem';
 import { PositionV2ABI as PositionABI, JuiceDollarABI as StablecoinABI } from '@juicedollar/jusd';
+import { getTxHash } from './utils/event';
 import {
 	positionV2,
 	challengeV2,
@@ -189,7 +190,7 @@ ponder.on('MintingHub:PositionOpened', async ({ event, context }) => {
 
 	await db.insert(positionV2).values({
 		id: positionId,
-		txHash: event.transaction.hash,
+		txHash: getTxHash(event),
 		position: getAddress(position),
 		owner: getAddress(owner),
 		stablecoinAddress: getAddress(stablecoinAddress),
@@ -261,7 +262,7 @@ ponder.on('MintingHub:ChallengeStarted', async ({ event, context }) => {
 
 	await db.insert(challengeV2).values({
 		id: getChallengeId(event.args.position, event.args.number),
-		txHash: event.transaction.hash,
+		txHash: getTxHash(event),
 		position: getAddress(event.args.position),
 		number: event.args.number,
 		challenger: getAddress(event.args.challenger),
@@ -323,7 +324,7 @@ ponder.on('MintingHub:ChallengeAverted', async ({ event, context }) => {
 
 	await db.insert(challengeBidV2).values({
 		id: challengeBidId,
-		txHash: event.transaction.hash,
+		txHash: getTxHash(event),
 		position: getAddress(event.args.position),
 		number: event.args.number,
 		numberBid: challenge.bids,
@@ -389,7 +390,7 @@ ponder.on('MintingHub:ChallengeSucceeded', async ({ event, context }) => {
 
 	await db.insert(challengeBidV2).values({
 		id: challengeBidId,
-		txHash: event.transaction.hash,
+		txHash: getTxHash(event),
 		position: getAddress(event.args.position),
 		number: event.args.number,
 		numberBid: challenge.bids,
@@ -432,26 +433,26 @@ ponder.on('MintingHub:ChallengeSucceeded', async ({ event, context }) => {
 ponder.on('MintingHub:ForcedSale', async ({ event, context }) => {
 	const { db } = context;
 	await db.insert(forcedSale).values({
-		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		id: `${getTxHash(event)}-${event.log.logIndex}`,
 		position: getAddress(event.args.pos),
 		amount: event.args.amount,
 		priceE36MinusDecimals: event.args.priceE36MinusDecimals,
 		blockheight: event.block.number,
 		timestamp: event.block.timestamp,
-		txHash: event.transaction.hash,
+		txHash: getTxHash(event),
 	});
 });
 
 ponder.on('MintingHub:PositionDeniedByGovernance', async ({ event, context }) => {
 	const { db } = context;
 	await db.insert(positionDeniedByGovernance).values({
-		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		id: `${getTxHash(event)}-${event.log.logIndex}`,
 		position: getAddress(event.args.position),
 		denier: getAddress(event.args.denier),
 		message: event.args.message,
 		blockheight: event.block.number,
 		timestamp: event.block.timestamp,
-		txHash: event.transaction.hash,
+		txHash: getTxHash(event),
 	});
 });
 
@@ -460,10 +461,10 @@ ponder.on('MintingHub:RateProposed', async ({ event, context }) => {
 	const { who, nextChange, nextRate } = event.args;
 
 	await db.insert(mintingHubRateProposed).values({
-		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		id: `${getTxHash(event)}-${event.log.logIndex}`,
 		created: event.block.timestamp,
 		blockheight: event.block.number,
-		txHash: event.transaction.hash,
+		txHash: getTxHash(event),
 		proposer: getAddress(who),
 		nextRate: nextRate,
 		nextChange: nextChange,
@@ -475,10 +476,10 @@ ponder.on('MintingHub:RateChanged', async ({ event, context }) => {
 	const { newRate } = event.args;
 
 	await db.insert(mintingHubRateChanged).values({
-		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		id: `${getTxHash(event)}-${event.log.logIndex}`,
 		created: event.block.timestamp,
 		blockheight: event.block.number,
-		txHash: event.transaction.hash,
+		txHash: getTxHash(event),
 		approvedRate: newRate,
 	});
 });

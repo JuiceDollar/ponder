@@ -2,6 +2,7 @@ import { ponder } from 'ponder:registry';
 import { getAddress } from 'viem';
 import { PositionV2ABI as PositionABI, SavingsGatewayV2ABI } from '@juicedollar/jusd';
 import { ADDR } from '../ponder.config';
+import { getTxHash } from './utils/event';
 import { positionV2, mintingUpdateV2, ecosystem, activeUser } from '../ponder.schema';
 
 /** Resolve the Savings contract address for a position by reading its hub. */
@@ -110,7 +111,7 @@ ponder.on('Position:MintingUpdate', async ({ event, context }) => {
 	if (mintingCounter === 1n) {
 		await db.insert(mintingUpdateV2).values({
 			id: idMinting(1),
-			txHash: event.transaction.hash,
+			txHash: getTxHash(event),
 			created: event.block.timestamp,
 			position: getAddress(position.position),
 			owner: getAddress(position.owner),
@@ -145,7 +146,7 @@ ponder.on('Position:MintingUpdate', async ({ event, context }) => {
 
 		await db.insert(mintingUpdateV2).values({
 			id: idMinting(mintingCounter),
-			txHash: event.transaction.hash,
+			txHash: getTxHash(event),
 			created: event.block.timestamp,
 			position: getAddress(position.position),
 			owner: getAddress(position.owner),

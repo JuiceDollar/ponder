@@ -2,6 +2,7 @@ import { ponder } from 'ponder:registry';
 import { Address, decodeFunctionData, getAddress, RpcTransaction, zeroAddress } from 'viem';
 import { ADDR } from '../ponder.config';
 import { FrontendGatewayV2ABI } from '@juicedollar/jusd';
+import { getTxHash } from './utils/event';
 import { trade, votingPower, tradeChart, activeUser, ecosystem, poolShare, delegation } from '../ponder.schema';
 
 ponder.on('Equity:Trade', async ({ event, context }) => {
@@ -11,7 +12,7 @@ ponder.on('Equity:Trade', async ({ event, context }) => {
 	const shares: bigint = event.args.amount;
 	const price: bigint = event.args.newprice;
 	const time: bigint = event.block.timestamp;
-	const txHash = event.transaction.hash;
+	const txHash = getTxHash(event);
 
 	let frontendCode: string | undefined;
 	const isFrontendGateway = event.transaction.to?.toLowerCase() === ADDR.frontendGateway.toLowerCase();
