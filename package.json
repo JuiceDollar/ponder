@@ -12,10 +12,11 @@
 		"typecheck": "tsc"
 	},
 	"dependencies": {
-		"@juicedollar/jusd": "^3.0.0",
-		"@ponder/core": "^0.4.36",
+		"@juicedollar/jusd": "^4.0.2",
+		"hono": "^4.12.9",
 		"pg": "^8.11.3",
-		"viem": "^2.13.8"
+		"ponder": "^0.16.6",
+		"viem": "^2.47.6"
 	},
 	"devDependencies": {
 		"@types/node": "^20.14.2",

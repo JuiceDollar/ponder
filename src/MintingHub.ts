@@ -1,0 +1,492 @@
+import { ponder } from 'ponder:registry';
+import { getAddress } from 'viem';
+import { PositionV2ABI as PositionABI, JuiceDollarABI as StablecoinABI } from '@juicedollar/jusd';
+import {
+	positionV2,
+	challengeV2,
+	challengeBidV2,
+	activeUser,
+	ecosystem,
+	forcedSale,
+	positionDeniedByGovernance,
+	mintingHubRateProposed,
+	mintingHubRateChanged,
+} from '../ponder.schema';
+
+ponder.on('MintingHub:PositionOpened', async ({ event, context }) => {
+	const { client, db } = context;
+
+	const { owner, position, original, collateral } = event.args;
+	const positionId = position.toLowerCase();
+	const originalId = original.toLowerCase();
+
+	const created: bigint = event.block.timestamp;
+	const isOriginal: boolean = originalId === positionId;
+	const isClone: boolean = !isOriginal;
+	const closed: boolean = false;
+	const denied: boolean = false;
+	const isChallenged: boolean = false;
+
+	const stablecoinAddress = await client.readContract({
+		abi: PositionABI,
+		address: position,
+		functionName: 'jusd',
+	});
+
+	const minimumCollateral = await client.readContract({
+		abi: PositionABI,
+		address: position,
+		functionName: 'minimumCollateral',
+	});
+
+	const riskPremiumPPM = await client.readContract({
+		abi: PositionABI,
+		address: position,
+		functionName: 'riskPremiumPPM',
+	});
+
+	const reserveContribution = await client.readContract({
+		abi: PositionABI,
+		address: position,
+		functionName: 'reserveContribution',
+	});
+
+	const start = await client.readContract({
+		abi: PositionABI,
+		address: position,
+		functionName: 'start',
+	});
+
+	const expiration = await client.readContract({
+		abi: PositionABI,
+		address: position,
+		functionName: 'expiration',
+	});
+
+	const challengePeriod = await client.readContract({
+		abi: PositionABI,
+		address: position,
+		functionName: 'challengePeriod',
+	});
+
+	const limitForClones = await client.readContract({
+		abi: PositionABI,
+		address: position,
+		functionName: 'limit',
+	});
+
+	const fixedAnnualRatePPM = await client.readContract({
+		abi: PositionABI,
+		address: position,
+		functionName: 'fixedAnnualRatePPM',
+	});
+
+	const stablecoinName = await client.readContract({
+		abi: StablecoinABI,
+		address: stablecoinAddress,
+		functionName: 'name',
+	});
+
+	const stablecoinSymbol = await client.readContract({
+		abi: StablecoinABI,
+		address: stablecoinAddress,
+		functionName: 'symbol',
+	});
+
+	const stablecoinDecimals = await client.readContract({
+		abi: StablecoinABI,
+		address: stablecoinAddress,
+		functionName: 'decimals',
+	});
+
+	const collateralName = await client.readContract({
+		abi: StablecoinABI,
+		address: collateral,
+		functionName: 'name',
+	});
+
+	const collateralSymbol = await client.readContract({
+		abi: StablecoinABI,
+		address: collateral,
+		functionName: 'symbol',
+	});
+
+	const collateralDecimals = await client.readContract({
+		abi: StablecoinABI,
+		address: collateral,
+		functionName: 'decimals',
+	});
+
+	const collateralBalance = await client.readContract({
+		abi: StablecoinABI,
+		address: collateral,
+		functionName: 'balanceOf',
+		args: [position],
+	});
+
+	const price = await client.readContract({
+		abi: PositionABI,
+		address: position,
+		functionName: 'price',
+	});
+
+	const availableForClones = await client.readContract({
+		abi: PositionABI,
+		address: position,
+		functionName: 'availableForClones',
+	});
+
+	const availableForMinting = await client.readContract({
+		abi: PositionABI,
+		address: position,
+		functionName: 'availableForMinting',
+	});
+
+	const cooldown = await client.readContract({
+		abi: PositionABI,
+		address: event.args.position,
+		functionName: 'cooldown',
+	});
+
+	const principal = await client.readContract({
+		abi: PositionABI,
+		address: position,
+		functionName: 'principal',
+	});
+
+	const virtualPrice = await client.readContract({
+		abi: PositionABI,
+		address: position,
+		functionName: 'virtualPrice',
+	});
+
+	const collateralRequirement = await client.readContract({
+		abi: PositionABI,
+		address: position,
+		functionName: 'getCollateralRequirement',
+	});
+
+	const actualVirtualPrice = collateralBalance > 0n ? (collateralRequirement * 10n ** 18n) / collateralBalance : price;
+
+	if (isClone) {
+		const originalAvailableForClones = await client.readContract({
+			abi: PositionABI,
+			address: original,
+			functionName: 'availableForClones',
+		});
+
+		const originalAvailableForMinting = await client.readContract({
+			abi: PositionABI,
+			address: original,
+			functionName: 'availableForMinting',
+		});
+
+		await db.update(positionV2, { id: originalId }).set({
+			availableForClones: originalAvailableForClones,
+			availableForMinting: originalAvailableForMinting,
+		});
+	}
+
+	await db.insert(positionV2).values({
+		id: positionId,
+		txHash: event.transaction.hash,
+		position: getAddress(position),
+		owner: getAddress(owner),
+		stablecoinAddress: getAddress(stablecoinAddress),
+		collateral: getAddress(collateral),
+		price,
+		created,
+		isOriginal,
+		isClone,
+		denied,
+		closed,
+		original: getAddress(original),
+		isChallenged,
+		minimumCollateral,
+		riskPremiumPPM,
+		reserveContribution,
+		start,
+		cooldown: BigInt(cooldown),
+		expiration,
+		challengePeriod,
+		stablecoinName,
+		stablecoinSymbol,
+		stablecoinDecimals,
+		collateralName,
+		collateralSymbol,
+		collateralDecimals,
+		collateralBalance,
+		limitForClones,
+		availableForClones,
+		availableForMinting,
+		fixedAnnualRatePPM,
+		principal,
+		virtualPrice,
+		actualVirtualPrice,
+		mintingHubAddress: getAddress(event.log.address)
+	});
+
+	await db
+		.insert(ecosystem)
+		.values({ id: 'MintingHubV2:TotalPositions', value: '', amount: 1n })
+		.onConflictDoUpdate((row) => ({ amount: row.amount + 1n }));
+
+	await db
+		.insert(activeUser)
+		.values({ id: getAddress(event.transaction.from), lastActiveTime: event.block.timestamp })
+		.onConflictDoUpdate(() => ({ lastActiveTime: event.block.timestamp }));
+});
+
+ponder.on('MintingHub:ChallengeStarted', async ({ event, context }) => {
+	const { client, db } = context;
+
+	const challenges = await client.readContract({
+		abi: context.contracts.MintingHub.abi,
+		address: event.log.address,
+		functionName: 'challenges',
+		args: [event.args.number],
+	});
+
+	const period = await client.readContract({
+		abi: PositionABI,
+		address: event.args.position,
+		functionName: 'challengePeriod',
+	});
+
+	const liqPrice = await client.readContract({
+		abi: PositionABI,
+		address: event.args.position,
+		functionName: 'price',
+	});
+
+	await db.insert(challengeV2).values({
+		id: getChallengeId(event.args.position, event.args.number),
+		txHash: event.transaction.hash,
+		position: getAddress(event.args.position),
+		number: event.args.number,
+		challenger: getAddress(event.args.challenger),
+		start: challenges[1],
+		created: event.block.timestamp,
+		duration: period,
+		size: event.args.size,
+		liqPrice,
+		bids: 0n,
+		filledSize: 0n,
+		acquiredCollateral: 0n,
+		status: 'Active',
+		mintingHubAddress: getAddress(event.log.address)
+	});
+
+	await db.update(positionV2, { id: event.args.position.toLowerCase() }).set({ isChallenged: true });
+
+	await db
+		.insert(ecosystem)
+		.values({ id: 'MintingHubV2:TotalChallenges', value: '', amount: 1n })
+		.onConflictDoUpdate((row) => ({ amount: row.amount + 1n }));
+
+	await db
+		.insert(activeUser)
+		.values({ id: getAddress(event.transaction.from), lastActiveTime: event.block.timestamp })
+		.onConflictDoUpdate(() => ({ lastActiveTime: event.block.timestamp }));
+});
+
+ponder.on('MintingHub:ChallengeAverted', async ({ event, context }) => {
+	const { client, db } = context;
+
+	const challenges = await client.readContract({
+		abi: context.contracts.MintingHub.abi,
+		address: event.log.address,
+		functionName: 'challenges',
+		args: [event.args.number],
+	});
+
+	const cooldown = await client.readContract({
+		abi: PositionABI,
+		address: event.args.position,
+		functionName: 'cooldown',
+	});
+
+	const liqPrice = await client.readContract({
+		abi: PositionABI,
+		address: event.args.position,
+		functionName: 'price',
+	});
+
+	const challengeId = getChallengeId(event.args.position, event.args.number);
+	const challenge = await db.find(challengeV2, { id: challengeId });
+	if (!challenge) throw new Error('ChallengeV2 not found');
+
+	const challengeBidId = getChallengeBidId(event.args.position, event.args.number, challenge.bids);
+	const _price: number = parseInt(liqPrice.toString());
+	const _size: number = parseInt(event.args.size.toString());
+	const _amount: number = (_price / 1e18) * _size;
+
+	await db.insert(challengeBidV2).values({
+		id: challengeBidId,
+		txHash: event.transaction.hash,
+		position: getAddress(event.args.position),
+		number: event.args.number,
+		numberBid: challenge.bids,
+		bidder: getAddress(event.transaction.from),
+		created: event.block.timestamp,
+		bidType: 'Averted',
+		bid: BigInt(_amount * 1e18),
+		price: liqPrice,
+		filledSize: event.args.size,
+		acquiredCollateral: 0n,
+		challengeSize: challenge.size,
+		mintingHubAddress: getAddress(event.log.address)
+	});
+
+	await db
+		.update(challengeV2, { id: challengeId })
+		.set((row) => ({
+			bids: row.bids + 1n,
+			filledSize: row.filledSize + event.args.size,
+			status: challenges[3] === 0n ? 'Success' : row.status,
+		}));
+
+	await db.update(positionV2, { id: event.args.position.toLowerCase() }).set({
+		cooldown: BigInt(cooldown),
+		isChallenged: challenges[3] !== 0n,
+	});
+
+	await db
+		.insert(ecosystem)
+		.values({ id: 'MintingHubV2:TotalAvertedBids', value: '', amount: 1n })
+		.onConflictDoUpdate((row) => ({ amount: row.amount + 1n }));
+
+	await db
+		.insert(activeUser)
+		.values({ id: getAddress(event.transaction.from), lastActiveTime: event.block.timestamp })
+		.onConflictDoUpdate(() => ({ lastActiveTime: event.block.timestamp }));
+});
+
+ponder.on('MintingHub:ChallengeSucceeded', async ({ event, context }) => {
+	const { client, db } = context;
+
+	const challenges = await client.readContract({
+		abi: context.contracts.MintingHub.abi,
+		address: event.log.address,
+		functionName: 'challenges',
+		args: [event.args.number],
+	});
+
+	const cooldown = await client.readContract({
+		abi: PositionABI,
+		address: event.args.position,
+		functionName: 'cooldown',
+	});
+
+	const challengeId = getChallengeId(event.args.position, event.args.number);
+	const challenge = await db.find(challengeV2, { id: challengeId });
+	if (!challenge) throw new Error('ChallengeV2 not found');
+
+	const challengeBidId = getChallengeBidId(event.args.position, event.args.number, challenge.bids);
+	const _bid: number = parseInt(event.args.bid.toString());
+	const _size: number = parseInt(event.args.challengeSize.toString());
+	const _price: number = (_bid * 10 ** 18) / _size;
+
+	await db.insert(challengeBidV2).values({
+		id: challengeBidId,
+		txHash: event.transaction.hash,
+		position: getAddress(event.args.position),
+		number: event.args.number,
+		numberBid: challenge.bids,
+		bidder: getAddress(event.transaction.from),
+		created: event.block.timestamp,
+		bidType: 'Succeeded',
+		bid: event.args.bid * 10n ** 18n,
+		price: BigInt(_price),
+		filledSize: event.args.challengeSize,
+		acquiredCollateral: event.args.acquiredCollateral,
+		challengeSize: challenge.size,
+		mintingHubAddress: getAddress(event.log.address)
+	});
+
+	await db
+		.update(challengeV2, { id: challengeId })
+		.set((row) => ({
+			bids: row.bids + 1n,
+			acquiredCollateral: row.acquiredCollateral + event.args.acquiredCollateral,
+			filledSize: row.filledSize + event.args.challengeSize,
+			status: challenges[3] === 0n ? 'Success' : row.status,
+		}));
+
+	await db.update(positionV2, { id: event.args.position.toLowerCase() }).set({
+		cooldown: BigInt(cooldown),
+		isChallenged: challenges[3] !== 0n,
+	});
+
+	await db
+		.insert(ecosystem)
+		.values({ id: 'MintingHubV2:TotalSucceededBids', value: '', amount: 1n })
+		.onConflictDoUpdate((row) => ({ amount: row.amount + 1n }));
+
+	await db
+		.insert(activeUser)
+		.values({ id: getAddress(event.transaction.from), lastActiveTime: event.block.timestamp })
+		.onConflictDoUpdate(() => ({ lastActiveTime: event.block.timestamp }));
+});
+
+ponder.on('MintingHub:ForcedSale', async ({ event, context }) => {
+	const { db } = context;
+	await db.insert(forcedSale).values({
+		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		position: getAddress(event.args.pos),
+		amount: event.args.amount,
+		priceE36MinusDecimals: event.args.priceE36MinusDecimals,
+		blockheight: event.block.number,
+		timestamp: event.block.timestamp,
+		txHash: event.transaction.hash,
+	});
+});
+
+ponder.on('MintingHub:PositionDeniedByGovernance', async ({ event, context }) => {
+	const { db } = context;
+	await db.insert(positionDeniedByGovernance).values({
+		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		position: getAddress(event.args.position),
+		denier: getAddress(event.args.denier),
+		message: event.args.message,
+		blockheight: event.block.number,
+		timestamp: event.block.timestamp,
+		txHash: event.transaction.hash,
+	});
+});
+
+ponder.on('MintingHub:RateProposed', async ({ event, context }) => {
+	const { db } = context;
+	const { who, nextChange, nextRate } = event.args;
+
+	await db.insert(mintingHubRateProposed).values({
+		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		created: event.block.timestamp,
+		blockheight: event.block.number,
+		txHash: event.transaction.hash,
+		proposer: getAddress(who),
+		nextRate: nextRate,
+		nextChange: nextChange,
+	});
+});
+
+ponder.on('MintingHub:RateChanged', async ({ event, context }) => {
+	const { db } = context;
+	const { newRate } = event.args;
+
+	await db.insert(mintingHubRateChanged).values({
+		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		created: event.block.timestamp,
+		blockheight: event.block.number,
+		txHash: event.transaction.hash,
+		approvedRate: newRate,
+	});
+});
+
+const getChallengeId = (position: string, number: bigint) => {
+	return `${position.toLowerCase()}-challenge-${number}`;
+};
+
+const getChallengeBidId = (position: string, number: bigint, bid: bigint) => {
+	return `${position.toLowerCase()}-challenge-${number}-bid-${bid}`;
+};

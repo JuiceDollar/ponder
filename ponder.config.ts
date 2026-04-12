@@ -1,16 +1,20 @@
-import { createConfig } from '@ponder/core';
+import { createConfig, factory, rateLimit } from 'ponder';
 import { testnet, mainnet } from './chains';
-import { Address, http } from 'viem';
+import { Address, zeroAddress } from 'viem';
+import { AbiEvent } from 'abitype';
+import { citreaTransport } from './citrea-transport-fix';
 
 import {
 	ADDRESS,
 	JuiceDollarABI,
 	EquityABI,
-	MintingHubV2ABI,
-	PositionRollerABI,
+	MintingHubV3ABI,
+	PositionRollerV2ABI,
 	PositionV2ABI,
-	SavingsABI,
-	FrontendGatewayABI,
+	SavingsGatewayV2ABI,
+	SavingsV3ABI,
+	SavingsVaultJUSDABI,
+	FrontendGatewayV2ABI,
 	StablecoinBridgeABI,
 } from '@juicedollar/jusd';
 
@@ -23,7 +27,6 @@ const MAINNET_CONFIG = {
 	rpc: process.env.RPC_URL_MAINNET ?? mainnet.rpcUrls.default.http[0],
 	startStablecoin: 2650850,
 	startMintingHubV2: 2650850,
-	blockrange: 1000,
 	maxRequestsPerSecond: 50,
 	pollingInterval: 5_000,
 };
@@ -32,7 +35,6 @@ const TESTNET_CONFIG = {
 	rpc: process.env.RPC_URL_TESTNET ?? testnet.rpcUrls.default.http[0],
 	startStablecoin: 21252514,
 	startMintingHubV2: 21252514,
-	blockrange: 1000,
 	maxRequestsPerSecond: 50,
 	pollingInterval: 5_000,
 };
@@ -44,87 +46,100 @@ export const CONFIG = {
 
 export const config = CONFIG[Id]!;
 
-const openPositionEventV2 = MintingHubV2ABI.find((a) => a.type === 'event' && a.name === 'PositionOpened');
-if (openPositionEventV2 === undefined) throw new Error('openPositionEventV2 not found.');
+const openPositionEvent = MintingHubV3ABI.find((a) => a.type === 'event' && a.name === 'PositionOpened') as AbiEvent;
+if (!openPositionEvent) throw new Error('openPositionEvent not found.');
+
+// V3 contracts deployed at this block on mainnet
+export const V3_START_BLOCK = 5081799;
+
+const isDeployed = (addr: string | undefined): addr is Address => !!addr && addr !== zeroAddress;
+
+// MintingHub addresses (V2 + V3) for use in handlers
+export const MINTING_HUB_ADDRESSES = new Set(
+	[ADDR.mintingHubGateway, ADDR.mintingHub].filter(isDeployed).map((a) => a.toLowerCase())
+);
 
 export default createConfig({
-	networks: {
+	chains: {
 		[chain.name]: {
-			chainId: Id,
-			maxRequestsPerSecond: config.maxRequestsPerSecond,
+			id: Id,
+			rpc: rateLimit(citreaTransport(config.rpc), { requestsPerSecond: config.maxRequestsPerSecond }),
 			pollingInterval: config.pollingInterval,
-			transport: http(config.rpc),
 		},
 	},
 	contracts: {
 		Stablecoin: {
-			network: chain.name,
+			chain: chain.name,
 			abi: JuiceDollarABI,
 			address: ADDR.juiceDollar as Address,
 			startBlock: config.startStablecoin,
-			maxBlockRange: config.blockrange,
 		},
 		Equity: {
-			network: chain.name,
+			chain: chain.name,
 			abi: EquityABI,
 			address: ADDR.equity as Address,
 			startBlock: config.startStablecoin,
-			maxBlockRange: config.blockrange,
 		},
-		MintingHubV2: {
-			// V2
-			network: chain.name,
-			abi: MintingHubV2ABI,
-			address: ADDR.mintingHubGateway as Address,
+		MintingHub: {
+			// V2 + V3 (V3 ABI is superset — includes RateProposed/RateChanged from Leadrate)
+			chain: chain.name,
+			abi: MintingHubV3ABI,
+			address: [ADDR.mintingHubGateway, ADDR.mintingHub].filter(isDeployed),
 			startBlock: config.startMintingHubV2,
-			maxBlockRange: config.blockrange,
 		},
-		PositionV2: {
-			// V2
-			network: chain.name,
+		Position: {
+			// Positions from V2 + V3 MintingHub factories
+			chain: chain.name,
 			abi: PositionV2ABI,
-			factory: {
-				address: ADDR.mintingHubGateway as Address,
-				event: openPositionEventV2,
+			address: factory({
+				address: [ADDR.mintingHubGateway, ADDR.mintingHub].filter(isDeployed),
+				event: openPositionEvent,
 				parameter: 'position',
-			},
+			}),
 			startBlock: config.startMintingHubV2,
-			maxBlockRange: config.blockrange,
 		},
-		Savings: {
-			// V2
-			network: chain.name,
-			abi: SavingsABI,
+		SavingsV2: {
+			chain: chain.name,
+			abi: SavingsGatewayV2ABI,
 			address: ADDR.savingsGateway as Address,
 			startBlock: config.startMintingHubV2,
-			maxBlockRange: config.blockrange,
+		},
+		SavingsV3: {
+			chain: chain.name,
+			abi: SavingsV3ABI,
+			address: ADDR.savings as Address,
+			startBlock: V3_START_BLOCK,
+		},
+		SavingsVaultJUSD: {
+			// V2 + V3 (identical event signatures)
+			chain: chain.name,
+			abi: SavingsVaultJUSDABI,
+			address: [ADDR.savingsVaultV2, ADDR.savingsVaultV3].filter(isDeployed),
+			startBlock: config.startMintingHubV2,
 		},
 		Roller: {
-			// V2
-			network: chain.name,
-			abi: PositionRollerABI,
-			address: ADDR.roller as Address,
+			// V2 + V3 (identical Roll event)
+			chain: chain.name,
+			abi: PositionRollerV2ABI,
+			address: [ADDR.rollerV2, ADDR.rollerV3].filter(isDeployed),
 			startBlock: config.startMintingHubV2,
-			maxBlockRange: config.blockrange,
 		},
 		FrontendGateway: {
-			network: chain.name,
-			abi: FrontendGatewayABI,
+			chain: chain.name,
+			abi: FrontendGatewayV2ABI,
 			address: ADDR.frontendGateway as Address,
 			startBlock: config.startMintingHubV2,
-			maxBlockRange: config.blockrange,
 		},
 		StablecoinBridge: {
-			network: chain.name,
+			chain: chain.name,
 			abi: StablecoinBridgeABI,
 			address: [
 				ADDR.bridgeStartUSD,
 				ADDR.bridgeUSDC,
 				ADDR.bridgeUSDT,
 				ADDR.bridgeCTUSD,
-			].filter((a): a is Address => !!a),
+			].filter(isDeployed),
 			startBlock: config.startStablecoin,
-			maxBlockRange: config.blockrange,
 		},
 	},
 });
