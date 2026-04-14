@@ -208,6 +208,26 @@ ponder.on('SavingsV3:InterestCollected', async ({ event, context }) => {
 		}));
 });
 
+ponder.on('SavingsV3:InterestClaimed', async ({ event, context }) => {
+	const { db } = context;
+	const account = getAddress(event.args.account);
+	const { amount } = event.args;
+
+	await db
+		.insert(savingsInterestMapping)
+		.values({
+			id: account,
+			created: event.block.timestamp,
+			blockheight: event.block.number,
+			updated: event.block.timestamp,
+			amount: 0n - amount,
+		})
+		.onConflictDoUpdate((row) => ({
+			updated: event.block.timestamp,
+			amount: row.amount - amount,
+		}));
+});
+
 ponder.on('SavingsV3:Withdrawn', async ({ event, context }) => {
 	const { client, db } = context;
 	const { amount } = event.args;
