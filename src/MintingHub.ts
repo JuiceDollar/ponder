@@ -8,6 +8,7 @@ import {
 	activeUser,
 	ecosystem,
 	forcedSale,
+	postponedReturn,
 	positionDeniedByGovernance,
 	mintingHubRateProposed,
 	mintingHubRateChanged,
@@ -438,6 +439,20 @@ ponder.on('MintingHub:ForcedSale', async ({ event, context }) => {
 		priceE36MinusDecimals: event.args.priceE36MinusDecimals,
 		blockheight: event.block.number,
 		timestamp: event.block.timestamp,
+		txHash: event.transaction.hash,
+	});
+});
+
+ponder.on('MintingHub:PostponedReturn', async ({ event, context }) => {
+	const { db } = context;
+	await db.insert(postponedReturn).values({
+		id: `${event.transaction.hash}-${event.log.logIndex}`,
+		collateral: getAddress(event.args.collateral),
+		beneficiary: getAddress(event.args.beneficiary),
+		amount: event.args.amount,
+		mintingHubAddress: getAddress(event.log.address),
+		blockheight: event.block.number,
+		created: event.block.timestamp,
 		txHash: event.transaction.hash,
 	});
 });
