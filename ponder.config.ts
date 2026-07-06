@@ -1,5 +1,5 @@
 import { createConfig, factory, rateLimit } from 'ponder';
-import { testnet, mainnet } from './chains';
+import { mainnet } from './chains';
 import { Address, zeroAddress } from 'viem';
 import { AbiEvent } from 'abitype';
 import { citreaTransport } from './citrea-transport-fix';
@@ -18,33 +18,17 @@ import {
 	StablecoinBridgeABI,
 } from '@juicedollar/jusd';
 
-// mainnet (default) or testnet
-export const chain = (process.env.PONDER_PROFILE as string) == 'testnet' ? testnet : mainnet;
+export const chain = mainnet;
 export const Id = chain.id!;
 export const ADDR = ADDRESS[Id]!;
 
-const MAINNET_CONFIG = {
+export const config = {
 	rpc: process.env.RPC_URL_MAINNET ?? mainnet.rpcUrls.default.http[0],
 	startStablecoin: 2650850,
 	startMintingHubV2: 2650850,
 	maxRequestsPerSecond: 50,
 	pollingInterval: 5_000,
 };
-
-const TESTNET_CONFIG = {
-	rpc: process.env.RPC_URL_TESTNET ?? testnet.rpcUrls.default.http[0],
-	startStablecoin: 21252514,
-	startMintingHubV2: 21252514,
-	maxRequestsPerSecond: 50,
-	pollingInterval: 5_000,
-};
-
-export const CONFIG = {
-	[mainnet.id]: MAINNET_CONFIG,
-	[testnet.id]: TESTNET_CONFIG,
-};
-
-export const config = CONFIG[Id]!;
 
 const openPositionEvent = MintingHubV3ABI.find((a) => a.type === 'event' && a.name === 'PositionOpened') as AbiEvent;
 if (!openPositionEvent) throw new Error('openPositionEvent not found.');
